@@ -1,9 +1,13 @@
-<!-- ki tckicki 3al p 3ayet el showHide -->
-<!-- <p (click)="showHide()">
-  cc {{title()}}
-</p>
-
-<div [hidden]="isHidden()">hello</div>
-
-<app-som/> -->
-<app-pere/>
+<h1>
+  <a
+    routerLink="/"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{exact:true}"
+  >home</a><br>
+  <a routerLink="/fils" routerLinkActive="active">fils</a><br>
+  <a [routerLink]="['som']" routerLinkActive="active">som</a>
+</h1>
+<hr>
+<router-outlet/>
+<hr>
+<h2>Footer</h2>

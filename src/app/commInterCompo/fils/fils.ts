@@ -1,8 +1,9 @@
 import { Component, EventEmitter, inject, input, output, Output, signal } from '@angular/core';
 import { Logger } from '../../services/logger';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
-  imports: [],
+  imports: [RouterOutlet],
   selector: 'app-fils',
   styleUrl: './fils.css',
   templateUrl: './fils.html',
@@ -10,7 +11,7 @@ import { Logger } from '../../services/logger';
 })
 export class Fils {
 
-  message = input.required()
+  message = input("cc")
   sendMessageToDad = output<string>();
   loggerService = inject(Logger);
   constructor() {

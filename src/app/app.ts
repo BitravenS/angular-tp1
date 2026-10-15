@@ -1,11 +1,11 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Som } from './components/som/som';
 import { Fils } from './commInterCompo/fils/fils';
 import { Pere } from './commInterCompo/pere/pere';
 
 @Component({
-  imports: [Som, Fils, Pere],
+  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
