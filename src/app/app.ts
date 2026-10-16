@@ -3,9 +3,10 @@ import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
 import { Som } from './components/som/som';
 import { Fils } from './commInterCompo/fils/fils';
 import { Pere } from './commInterCompo/pere/pere';
+import { FirstRxjs } from './rxjs/first-rxjs/first-rxjs';
 
 @Component({
-  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive, FirstRxjs],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

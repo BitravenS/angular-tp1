@@ -1,0 +1,11 @@
+<p (click)="showForm()">test-form works!</p>
+
+<form >
+  name <input [formField]="sectionForm.name" class="form-control" type="text">
+  <!-- {{sectionForm.name().errors()[0].message ?? ''}} -->
+  level <input [formField]="sectionForm.level" class="form-control" type="number">
+</form>
+
+<button (click)="section.set({name: 'GL', level:4})" class="btn btn-danger">
+  reset
+</button>
