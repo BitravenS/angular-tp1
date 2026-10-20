@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Observable } from 'rxjs';
+import { filter, map, Observable, take } from 'rxjs';
 
 @Component({
   imports: [],
@@ -21,7 +21,17 @@ export class FirstRxjs {
     observer.next(i--);
    }, 1000);
   });
-  this.myObservable$.subscribe({
+  // subsbcription 1
+  this.myObservable$
+  .pipe(
+    // 5 4 3 2 1
+    map(value => value * 3),
+    // 15 12 9 6 3
+    filter(data => data % 2 == 0),
+    // 12 6
+    take(1)
+  )
+  .subscribe({
    next: (val) => {
     console.log('First subscriber');
 
@@ -29,7 +39,8 @@ export class FirstRxjs {
    },
   });
   setTimeout(() => {
-    this.myObservable$.subscribe({
+    this.myObservable$
+    .subscribe({
       next: (val) => {
         console.log('Second subscriber');
 

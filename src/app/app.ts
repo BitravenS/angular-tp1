@@ -4,9 +4,10 @@ import { Som } from './components/som/som';
 import { Fils } from './commInterCompo/fils/fils';
 import { Pere } from './commInterCompo/pere/pere';
 import { FirstRxjs } from './rxjs/first-rxjs/first-rxjs';
+import { TestHttp } from './http/test-http/test-http';
 
 @Component({
-  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive, FirstRxjs],
+  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive, FirstRxjs, TestHttp],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
