@@ -1,8 +1,9 @@
 import { Component, computed, effect, inject, Injector, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { FirstRxjs } from '../../rxjs/first-rxjs/first-rxjs';
 
 @Component({
-  imports: [FormsModule],
+  imports: [FormsModule, FirstRxjs],
   selector: 'app-som',
   styleUrl: './som.css',
   templateUrl: './som.html',
