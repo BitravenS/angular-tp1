@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { API } from '../../config/api.config';
+import { API } from '../../../config/api.config';
 import { Cv } from '../model/cv';
 import { CvService } from './cv.service';
 
@@ -13,7 +13,9 @@ describe('CvService', () => {
   const settle = () => TestBed.inject(ApplicationRef).whenStable();
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(CvService);
     http = TestBed.inject(HttpTestingController);
     TestBed.tick();
@@ -22,15 +24,15 @@ describe('CvService', () => {
   it('exposes the cvs returned by the API', async () => {
     http.expectOne(API.cv).flush([cv]);
     await settle();
-    expect(service.cvs()).toEqual([cv]);
-    expect(service.isFallback()).toBe(false);
+    expect(service.cvList()).toEqual([cv]);
+    expect(service.isFallback()).toBeFalse();
   });
 
   it('falls back to the fake cvs when the API fails', async () => {
     http.expectOne(API.cv).flush('boom', { status: 500, statusText: 'Server Error' });
     await settle();
-    expect(service.isFallback()).toBe(true);
-    expect(service.cvs().length).toBe(2);
+    expect(service.isFallback()).toBeTrue();
+    expect(service.cvList()).toEqual(service.getFakeCvs());
   });
 
   it('keeps track of the selected cv', () => {
@@ -49,7 +51,7 @@ describe('CvService', () => {
     TestBed.tick();
     http.expectOne({ method: 'GET', url: API.cv }).flush([]);
     await settle();
-    expect(service.cvs()).toEqual([]);
+    expect(service.cvList()).toEqual([]);
   });
 
   it('reloads the list after adding a cv', async () => {
@@ -60,6 +62,13 @@ describe('CvService', () => {
     TestBed.tick();
     http.expectOne({ method: 'GET', url: API.cv }).flush([cv]);
     await settle();
-    expect(service.cvs()).toEqual([cv]);
+    expect(service.cvList()).toEqual([cv]);
+  });
+
+  it('searches cvs by name with a like filter', () => {
+    service.selectByName('abc').subscribe();
+    const request = http.expectOne((r) => r.url === API.cv && r.params.has('filter'));
+    expect(request.request.params.get('filter')).toContain('%abc%');
+    request.flush([]);
   });
 });

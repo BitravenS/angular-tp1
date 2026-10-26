@@ -1,0 +1,9 @@
+<!-- <pre *ngFor="let todo of todos">
+{{ todo | json}}
+</pre> -->
+@for (todo of todos$ | async; track todo) {
+  <pre>
+    {{ todo | json}}
+  </pre>
+}
+<!-- https://apilb.tridevs.net/explorer/ -->

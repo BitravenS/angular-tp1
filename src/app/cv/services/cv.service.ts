@@ -1,66 +1,141 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { computed, inject, Service, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
-import { Observable, tap } from 'rxjs';
-import { API } from '../../config/api.config';
-import { Cv } from '../model/cv';
+import { Injectable, computed, inject, signal } from "@angular/core";
+import { rxResource } from "@angular/core/rxjs-interop";
+import { Cv } from "../model/cv";
+import { Observable, tap } from "rxjs";
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { API } from "../../../config/api.config";
 
-@Service()
+@Injectable({
+  providedIn: "root",
+})
 export class CvService {
-  private readonly http = inject(HttpClient);
+  private http = inject(HttpClient);
 
-  private readonly fakeCvs: readonly Cv[] = [
-    new Cv(1, 'aymen', 'sellaouti', 'teacher', 'as.jpg', '1234', 40),
-    new Cv(2, 'skander', 'sellaouti', 'enfant', '       ', '1234', 4),
+  private cvs: Cv[] = [
+    new Cv(1, "aymen", "sellaouti", "teacher", "as.jpg", "1234", 40),
+    new Cv(2, "skander", "sellaouti", "enfant", "       ", "1234", 4),
   ];
 
-  /** La liste des cvs de l'API, chargée une seule fois et rechargeable (reload) */
-  readonly cvsResource = rxResource({
-    stream: () => this.http.get<Cv[]>(API.cv),
+  cvsResource = rxResource({
+    stream: () => this.getCvs(),
   });
 
-  /** true si l'API a échoué : on affiche alors les cvs fictifs */
-  readonly isFallback = computed(() => this.cvsResource.error() !== undefined);
+  isFallback = computed(() => this.cvsResource.error() !== undefined);
 
-  /** Les cvs à afficher : ceux de l'API, sinon les cvs fictifs */
-  readonly cvs = computed<readonly Cv[]>(() =>
-    this.cvsResource.hasValue() ? this.cvsResource.value() : this.fakeCvs,
+  cvList = computed<readonly Cv[]>(() =>
+    this.cvsResource.hasValue() ? this.cvsResource.value() : this.getFakeCvs()
   );
 
-  readonly #selectedCv = signal<Cv | null>(null);
+  #selectedCv = signal<Cv | null>(null);
+  selectedCv = this.#selectedCv.asReadonly();
 
-  /** Le dernier cv sélectionné (remplace le Subject selectCv$) */
-  readonly selectedCv = this.#selectedCv.asReadonly();
-
-  selectCv(cv: Cv): void {
-    this.#selectedCv.set(cv);
+  /**
+   *
+   * Retourne un liste fictive de cvs
+   *
+   * @returns CV[]
+   *
+   */
+  getFakeCvs(): Cv[] {
+    return this.cvs;
   }
 
-  /** Retourne un cv par son id de l'API */
+  /**
+   *
+   * Retourne la liste des cvs de l'API
+   *
+   * @returns CV[]
+   *
+   */
+  getCvs(): Observable<Cv[]> {
+    return this.http.get<Cv[]>(API.cv);
+  }
+
+  /**
+   *
+   * supprime un cv par son id de l'API
+   *
+   * @param id: number
+   * @returns CV[]
+   *
+   */
+  deleteCvById(id: number): Observable<any> {
+    return this.http.delete<any>(API.cv + id).pipe(
+      tap(() => {
+        if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
+        this.cvsResource.reload();
+      })
+    );
+  }
+
+  addCv(cv: Cv): Observable<Cv> {
+    return this.http
+      .post<Cv>(API.cv, cv)
+      .pipe(tap(() => this.cvsResource.reload()));
+  }
+
+  /**
+   *
+   * Retourne un cv par son id de l'API
+   *
+   * @param id: number
+   * @returns CV[]
+   *
+   */
   getCvById(id: number): Observable<Cv> {
     return this.http.get<Cv>(API.cv + id);
   }
 
-  /** Supprime un cv par son id de l'API puis recharge la liste */
-  deleteCvById(id: number): Observable<unknown> {
-    return this.http.delete(API.cv + id).pipe(
-      tap(() => {
-        // Un cv supprimé ne doit plus rester sélectionné
-        if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
-        this.cvsResource.reload();
-      }),
-    );
+  /**
+   *
+   * Cherche un cv avec son id dans lai liste fictive de cvs
+   *
+   * @param id
+   * @returns Cv | null
+   */
+  findCvById(id: number): Cv | null {
+    return this.cvs.find((cv) => cv.id == id) ?? null;
   }
 
-  /** Ajoute un cv puis recharge la liste */
-  addCv(cv: Cv): Observable<Cv> {
-    return this.http.post<Cv>(API.cv, cv).pipe(tap(() => this.cvsResource.reload()));
+  /**
+   *
+   * Supprime un cv s'il le trouve
+   *
+   * @param cv : Cv
+   * @returns boolean
+   */
+  deleteCv(cv: Cv): boolean {
+    const index = this.cvs.indexOf(cv);
+    if (index > -1) {
+      this.cvs.splice(index, 1);
+      return true;
+    }
+    return false;
   }
 
-  /** Recherche les cvs dont le name contient la chaine passée en paramètre */
-  selectByName(name: string): Observable<Cv[]> {
+  /**
+   * Recherche les cvs dont le name contient la chaine name passée en paramètre
+   * @param name : string
+   * @returns cvs Cv[]
+   */
+  selectByName(name: string) {
     const search = `{"where":{"name":{"like":"%${name}%"}}}`;
-    const params = new HttpParams().set('filter', search);
+    const params = new HttpParams().set("filter", search);
     return this.http.get<Cv[]>(API.cv, { params });
+  }
+  /**
+   * Recherche les cvs dont la valeur est égale à la chaine passée en paramètre
+   * @param property : string, la propriété sur laquelle on va requeter
+   * @param value : string, la valeur de la propriété sur laquelle on va requeter
+   * @returns cvs Cv[]
+   */
+  selectByProperty(property: string, value: string) {
+    const search = `{"where":{"${property}":"${value}"}}`;
+    const params = new HttpParams().set("filter", search);
+    return this.http.get<Cv[]>(API.cv, { params });
+  }
+
+  selectCv(cv: Cv) {
+    this.#selectedCv.set(cv);
   }
 }

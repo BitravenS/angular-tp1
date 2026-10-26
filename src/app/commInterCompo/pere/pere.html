@@ -1,9 +1,0 @@
-<div appHighlight>pere works!</div>
-<p [in]="'gold'"  [out]="'pink'" appHighlight>pere works!</p>
-<p [in]="'green'"  [out]="'blue'" appHighlight2>pere works!</p>
-
-<app-fils (sendMessageToDad)="handleSonEvent($event)" [message]="'Bara echri el khobz'" />
-
-<input type="text" [(ngModel)]="testPipe">
-with pipe : {{testPipe() | uppercase}}
-<p>without pipe {{testPipe() }}</p>

@@ -1,0 +1,11 @@
+<ol class="list-group">
+  @for (cv of cvs(); track cv.id) {
+    <li
+      class="list-group-item"
+      [class.list-group-item-primary]="$odd"
+      [class.list-group-item-secondary]="!$odd"
+    >
+      <app-item [cv]="cv"></app-item>
+    </li>
+  }
+</ol>

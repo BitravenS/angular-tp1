@@ -1,0 +1,64 @@
+<div class="todo-app p-2">
+  <div class="d-flex gap-2 mb-2">
+    <input #nameInput appRainbow type="text" class="form-control" placeholder="name" aria-label="name"
+      [value]="name()" (keyup)="name.set(nameInput.value)">
+    <input #contentInput appRainbow type="text" class="form-control" placeholder="content" aria-label="content"
+      [value]="content()" (keyup)="content.set(contentInput.value)">
+    <button (click)="addTodo()" [disabled]="!name().trim() || !content().trim()"
+      class="btn btn-danger btn-sm">add</button>
+  </div>
+
+  <div class="row g-0">
+    <div class="col alert alert-secondary m-0">
+      <h5>Waiting</h5>
+      @for (todo of todoService.waitingTodos(); track todo.id) {
+        <div class="card p-2 mb-2">
+          <strong>{{ todo.name }}</strong> {{ todo.content }}
+          <div>
+            <button class="btn btn-sm btn-warning" (click)="todoService.changeStatus(todo, 'in progress')">In progress</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" (click)="todoService.deleteTodo(todo)">
+              <i class="fa fa-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <small>No waiting todos</small>
+      }
+    </div>
+
+    <div class="col alert alert-warning m-0">
+      <h5>In Progress Todos</h5>
+      @for (todo of todoService.inProgressTodos(); track todo.id) {
+        <div class="card p-2 mb-2">
+          <strong>{{ todo.name }}</strong> {{ todo.content }}
+          <div>
+            <button class="btn btn-sm btn-secondary" (click)="todoService.changeStatus(todo, 'waiting')">Waiting</button>
+            <button class="btn btn-sm btn-success ms-1" (click)="todoService.changeStatus(todo, 'done')">Done</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" (click)="todoService.deleteTodo(todo)">
+              <i class="fa fa-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <small>No todos in progress</small>
+      }
+    </div>
+
+    <div class="col alert alert-success m-0">
+      <h5>Done Todos</h5>
+      @for (todo of todoService.doneTodos(); track todo.id) {
+        <div class="card p-2 mb-2">
+          <strong>{{ todo.name }}</strong> {{ todo.content }}
+          <div>
+            <button class="btn btn-sm btn-warning" (click)="todoService.changeStatus(todo, 'in progress')">In progress</button>
+            <button class="btn btn-sm btn-outline-danger ms-1" (click)="todoService.deleteTodo(todo)">
+              <i class="fa fa-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <small>No done todos</small>
+      }
+    </div>
+  </div>
+</div>

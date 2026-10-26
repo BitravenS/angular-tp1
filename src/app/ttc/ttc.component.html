@@ -1,0 +1,31 @@
+<section class="p-3 bg-light rounded" aria-labelledby="ttc-title">
+  <h2 id="ttc-title">TTC Calculator</h2>
+  <div class="row g-2">
+    <div class="col-md-4">
+      <label class="form-label" for="prixHt">Prix HT</label>
+      <input id="prixHt" class="form-control" type="number" [formField]="ttcForm.prixHt" />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="quantite">Quantité</label>
+      <input id="quantite" class="form-control" type="number" [formField]="ttcForm.quantite" />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="tva">TVA (%)</label>
+      <input id="tva" class="form-control" type="number" [formField]="ttcForm.tva" />
+    </div>
+  </div>
+  <div class="row g-0 mt-3" aria-live="polite">
+    <div class="col-md-4 p-3 bg-info-subtle text-info-emphasis border">
+      Prix unitaire TTC : {{ pricing().unitTtc | currency }}
+    </div>
+    <div class="col-md-4 p-3 bg-success-subtle text-success-emphasis border">
+      Prix total TTC : {{ pricing().total | currency }}
+    </div>
+    <div class="col-md-4 p-3 bg-danger-subtle text-danger-emphasis border">
+      Discount : {{ pricing().discount | currency }}
+      @if (pricing().discountRate > 0) {
+        ({{ pricing().discountRate | percent }})
+      }
+    </div>
+  </div>
+</section>

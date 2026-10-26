@@ -1,0 +1,19 @@
+<label class="visually-hidden" for="search">Rechercher un cv par nom</label>
+<input
+  id="search"
+  type="search"
+  class="form-control"
+  placeholder="Rechercher par nom"
+  [formField]="searchForm.search"
+/>
+@if (results().length) {
+  <ul class="list-group mb-2">
+    @for (cv of results(); track cv.id) {
+      <li class="list-group-item">
+        <button type="button" class="btn btn-link p-0" (click)="cvService.selectCv(cv)">
+          {{ cv.firstname }} {{ cv.name }}
+        </button>
+      </li>
+    }
+  </ul>
+}

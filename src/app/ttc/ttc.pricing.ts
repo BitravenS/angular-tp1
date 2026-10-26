@@ -1,8 +1,3 @@
-/**
- * Paliers de remise : la remise `rate` s'applique dès que la quantité
- * est STRICTEMENT supérieure à `above`. Triés du plus haut au plus bas.
- * Le palier à 10 est exclusif : à 10 pièces, pas de remise (cf. maquette du TP).
- */
 export interface DiscountTier {
   above: number;
   rate: number;
@@ -20,7 +15,6 @@ export interface Pricing {
   total: number;
 }
 
-/** Une saisie vide, négative ou invalide est traitée comme 0. */
 const sanitize = (value: number): number => (Number.isFinite(value) && value > 0 ? value : 0);
 
 export function discountRateFor(quantity: number): number {

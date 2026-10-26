@@ -15,17 +15,17 @@ describe('EmbaucheService', () => {
   });
 
   it('hires a cv and rejects a second hire of the same cv', () => {
-    expect(service.embauche(cv)).toBe(true);
-    expect(service.embauche(cv)).toBe(false);
+    expect(service.embauche(cv)).toBeTrue();
+    expect(service.embauche(cv)).toBeFalse();
     expect(service.embauchees()).toEqual([cv]);
   });
 
-  it('identifies a cv by id, not by reference', () => {
+  it('identifies a cv by id and not by reference', () => {
     service.embauche(cv);
-    expect(service.embauche({ ...cv })).toBe(false);
+    expect(service.embauche({ ...cv })).toBeFalse();
   });
 
-  it('publishes a new array on each hire (signal change detection)', () => {
+  it('publishes a new array on each hire', () => {
     const before = service.embauchees();
     service.embauche(cv);
     expect(service.embauchees()).not.toBe(before);

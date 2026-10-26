@@ -1,490 +1,430 @@
-# TP1 (GL4 2026/2027) — TTC Calculator + cvTech Refactoring with Signals
+# TP1 (GL4 2026/2027) — TTC Calculator + cvTech refactoring with Signals
 
-Branch of work: `claude/ttc-cv-signals-refactor-54ak8n` (starts at `aziz/signals`, commit `cd1f2fa`).
-Stack: Angular 22.2, standalone components, zoneless (no `zone.js` in the project), Signal Forms, Bootstrap 5, ngx-toastr, Vitest.
+Base: the `signal` branch of `BitravenS/angular-tp1-update` (Angular 22.2, standalone, zone.js, Karma/Jasmine, `@relynn/ngx-toastr`).
+Work: **one commit on top of that branch**, touching only the TTC and CV files (+ the route table and one navbar link).
 
 > Rule #1 of the professor: *"if you read your code to explain it, it is not your code → 0."*
-> This report is a study guide. Read §2–§5 until you can re-explain every file **without looking at it**, then train with the Q&A in §7.
+> The code contains **no comments on purpose**. Everything is explained here. Read §2 (concepts) and §4–§5 (walkthrough) until you can re-explain each file **without looking at it**, then train with §8.
 
 ---
 
-## 0. Read this first — what was done, and what differs from the brief
+## 0. Summary and honest notes
 
 | Topic | Reality |
 |---|---|
-| Where the real CV code is | The course repo's **`master` branch** (commit `8e98558`, *"Replace ngGl42627 with the correct TP starter"*) holds the real **cvTech starter**: an Angular **18, NgModule/RxJS** app (`src/app/cv/…`, `src/app/auth/…`, `navbar`). The branches `aziz/signals`, `migration`, `rxjs` are all at `cd1f2fa` (the lecture sandbox) and contain **no CV code**. So "refactoring the CV with signals" meant **porting that starter's `cv` folder onto the Angular 22 branch and refactoring it with signals**. |
-| Branch | You asked for `malek/signal` from `aziz/signal`. The remote branch is named **`aziz/signals`** (with an *s*). This session may only push to `claude/ttc-cv-signals-refactor-54ak8n` (same starting commit). To get your branch: `git switch -c malek/signal` from it and push. |
-| Auth | The CV code depends on `AuthService.isAuthenticated()` (details page "Delete" button, "Add CV" guard, navbar). So a **signal-based `AuthService`** (+ login, functional guard/interceptor, navbar) was also ported; it also covers the slide-13 requirements (id + email saved, authenticated or not, reloaded at startup, no state library). |
-| Not ported | Everything in the starter unrelated to CV/auth (todo, products, rxjs demos, optimizationPattern, templates, color, service worker…), and the rainbow-directive / Todo exercises of slides 8 and 10. |
-| Known gap in the starter | `add-cv.component.html` displays an error for a cross-field validator `cinFirstCars`, but the starter's TS never defines it. It is **not invented** here: the form validates required fields and `cin` = 8 digits only. |
-| Existing tests | 4 tests **already failed on the base branch** (`App` ×2, `First`, `Pere`: missing providers / outdated "Hello" assertion). Not touched. The other 35 tests pass, including the 27 new ones. |
-| Tooling | `npm ci` needs `--legacy-peer-deps` (`ngx-toastr@20` declares a peer on Angular 21). The Angular 22 CLI needs Node ≥ 22.22.3 (the sandbox had 22.22.0; Node 24 was used). `package.json` was **not** modified. |
-| Push status | At the time of writing, the push to GitHub was refused (403: the Claude GitHub App has no access to the repo). The commits exist locally on the branch. |
-
----
-## 1. Lab requirements (from the PDF)
-
-**Slide 11 – TTC (signal branch):** a component computing the TTC price of a product from quantity and VAT. The user can change every value; defaults: quantity **1**, price **0**, VAT **18**. Quantity **between 10 and 15 → 20 % discount**; **above 15 → 30 %**. Mock-up: three inputs (Prix HT / Quantité / TVA) and three result boxes (unit price TTC, total TTC, discount); with 100 / 10 / 18 it shows **$118.00 / $1,180.00 / $0.00**.
-
-**Slide 12 – CV (signal branch):** take the cvTech app (the `Cv` folder) and use signals where necessary. *"Think about the signal architecture."*
-
-**Slide 13 – Auth (context):** analyse `auth`, navbar and details; use signals; keep the authenticated user's id and email and whether they are authenticated; reload the state when the app loads; **no state-management library**.
-
-**Rules (slide 2):** coherent architecture, clean/factored code, design patterns are a duty, you must master the subject like in an interview.
+| Base code | `master` of `angular-tp1-update` is the Angular 18 NgModule/RxJS starter (the "initial project" of slide 3). Its `signal` branch is the migrated version (v22, standalone, new control flow, `inject()`), already containing the todo and rainbow-directive exercises. The CV code to refactor lives there. The work is a commit **on top of `signal`** so it can be moved there without conflicts. |
+| What was added | `src/app/ttc/*` (new) and a signal refactoring of `src/app/cv/*`, `src/app/app-routing.module.ts` (lazy routes), `navbar.component.html` (one "TTC" link), `src/app/testing/render.ts` (test helper). |
+| What was **not** touched | Auth (`AuthService`, login, guard, interceptor): the branch already exposes `token` and `isAuthenticated` as signals and the CV code only needs `isAuthenticated()`. Todo, rainbow, products, rxjs demos, `package.json`, `package-lock.json`, `angular.json`, toastr package (`@relynn/ngx-toastr` kept). |
+| Conventions followed | Same file names (`*.component.ts/html/css`), same paths, `@Injectable({ providedIn: 'root' })` for services, `inject()`, `templateUrl`/`styleUrls`, Jasmine/Karma specs, `@relynn/ngx-toastr`, double-quote style in files that already used it. |
+| Change detection | The migration had put `changeDetection: ChangeDetectionStrategy.Eager` on every component to keep the old behaviour. On the components refactored here it was **removed**: with signals, the default (OnPush in v22) is correct and cheaper. Untouched components keep `Eager`. |
+| Tests | 92 specs in the full suite → **85 pass**. The 7 failures (`AppComponent` ×3, `ColorComponent`, `LoginComponent`, `NavbarComponent`, `TestObservableComponent`) are generated "should create" stubs without providers, **already failing before this work** and not modified. The baseline had 50 specs, 12 failing, and two `fdescribe` that silently skipped 48 specs (they were temporarily switched to `describe` to measure, then restored). The `ttc` and `cv` folders now hold 54 specs (the stubs were replaced by real ones), all passing. |
+| Known gap in the starter | `add-cv.component.html` printed an error for a `cinFirstCars` cross-field validator that was never defined in the TypeScript. It is **not invented**: the form validates required fields + CIN = 8 digits. |
+| Local tooling | The branch's `package-lock.json` is out of sync with `package.json` (`npm ci` fails), so `npm install` was used and the lockfile change was **discarded**. The Angular 22 CLI needs Node ≥ 22.22.3. |
 
 ---
 
-## 2. Signals primer (what you must master)
+## 1. Lab requirements (the PDF)
 
-| Concept | One-liner | Used where |
+* **Slide 11 – TTC (signal branch):** compute the TTC price from quantity and VAT; every value editable; defaults quantity **1**, price **0**, VAT **18**; quantity between 10 and 15 → **20 %** discount; above 15 → **30 %**. Mock-up: inputs *Prix HT / Quantité / TVA* and three boxes (unit price TTC, total TTC, discount). With 100 / 10 / 18: **$118.00 / $1,180.00 / $0.00**.
+* **Slide 12 – CV (signal branch):** take the cvTech (the `Cv` folder) and use signals where necessary. *Think about the architecture of the signal.*
+* **Slide 2 (rules):** coherent architecture, clean and factored code, design patterns are a duty, be ready like for an interview.
+
+---
+
+## 2. The Angular concepts used (what you must master)
+
+### 2.1 Signals
+
+A **signal** is a getter function wrapping a value: `const s = signal(0); s()` reads, `s.set(1)` / `s.update(v => v + 1)` write. Reading a signal inside a template, a `computed` or an `effect` **registers that reader as a dependent**; writing notifies only the dependents. Angular knows exactly *which* view depends on *which* signal, so it can refresh only that view (fine-grained reactivity) instead of re-checking the whole tree.
+
+* **Immutability:** a signal notifies only if the new value differs by `Object.is`. Mutating an array in place (`push`) does **not** notify; replace it (`update(l => [...l, x])`). `mutate` no longer exists for that reason.
+* **`signal.asReadonly()`:** returns a read-only view. The service keeps the writable signal private (`#selectedCv`) and publishes the read-only one (`selectedCv`), so only the service can change the state.
+* **`#private` vs `private`:** `#x` is a real JavaScript private field (hard private at runtime), `private x` is TypeScript-only. The starter already used `#selectCvSuject$`; the same style is kept.
+
+### 2.2 `computed`
+
+`computed(() => …)` creates a **read-only derived signal**: lazy (computed on first read), **memoized** (re-run only if a dependency changed) and with **dynamic dependencies** (only the signals actually read during the last run count). Must be pure: no writes, no side effects. Used here for `pricing` (TTC), `cvList`, `isFallback`, `cv` (details), `results` (autocomplete).
+
+### 2.3 `effect`
+
+`effect(() => …)` runs a **side effect** when the signals it reads change (asynchronously, during change detection). Use it only to talk to the outside world (toast, router, localStorage, logging) — never to copy a signal into another signal (use `computed`/`linkedSignal`). Two legitimate uses here: the "API failed" toast (`CvComponent`) and the redirect when a CV is not found (`DetailsCvComponent`). An effect must be created in an injection context (constructor/field initializer).
+
+### 2.4 `linkedSignal` (not used, but be ready)
+
+A **writable** signal whose value is reset from a source signal when that source changes, e.g. `selected = linkedSignal(() => this.cvs()[0])` resets the selection when the list changes. It is the answer to "state derived from another state but that the user can still override".
+
+### 2.5 Signal-based component API
+
+| Old | New | Notes |
 |---|---|---|
-| `signal(v)` | Writable reactive value. Read `s()`, write `s.set(x)` / `s.update(fn)`. Never mutate in place (no `mutate`). | `selectedCv`, `hired`, `filter`, TTC `model` |
-| `computed(fn)` | Read-only, **lazy**, **memoized** derived value; dependencies are tracked automatically on each run. | `pricing`, `cvs`, `isFallback`, `filteredCvs`, `hiredIds` |
-| `effect(fn)` | Side effect re-run when its signals change. For syncing with the outside world (DOM, toasts, router) — *not* for deriving state. | 2 legitimate uses: toast when the API fails (`CvComponent`), navigate away when a CV is not found (`DetailsCv`) |
-| `linkedSignal` | Writable signal that resets from a source signal. | Not needed here (CLAUDE.md: use for state derived from several sources that must stay synchronized) |
-| `input()` / `input.required()` | Signal-based component inputs (replace `@Input`). | all CV components, `DetailsCv.id` |
-| `output()` | Event emitter (replaces `@Output` + `EventEmitter`). | `choose`, `selected`, `hire` |
-| `model()` | Two-way bound signal (`[(x)]`). | not needed |
-| `resource` / `rxResource` | Async data as signals: `value()`, `isLoading()`, `error()`, `status()`, `hasValue()`. `rxResource` takes an Observable `stream`. | `CvService.cvsResource`, `DetailsCv.cvResource` |
-| Signal Forms (`@angular/forms/signals`) | A `form(modelSignal, schema)` wraps a signal model; `[formField]` binds an input to a field; validators like `min()`. | TTC |
+| `@Input() cv!: Cv` | `cv = input.required<Cv>()` | read with `cv()`; usable in `computed`/`effect`; no `ngOnChanges` needed |
+| `@Input() size = 50` | `size = input(50)` | default value, type inferred |
+| `@Input({transform})` | `input.required({ transform: numberAttribute })` | converts the route param string `'12'` into `12` |
+| `@Output() x = new EventEmitter()` | `x = output<T>()` | `x.emit(v)` |
+| `@Input` + `@Output` pair | `model<T>()` | two-way binding `[(x)]` |
 
-**Why signals instead of zone-based change detection?** A signal read in a template registers that template as a consumer. When the signal changes, only the consumers are marked dirty → fine-grained updates, no need for `zone.js`, glitch-free (a `computed` is never observed in an inconsistent state), and no manual `subscribe/unsubscribe`.
+Inputs are **read-only signals**: a parent cannot be overwritten by the child. In tests an input is set with `fixture.componentRef.setInput('cv', value)`.
 
-**Zoneless:** `angular.json` has no `zone.js` polyfill and `app.config.ts` provides no zone provider, so the app runs zoneless (Angular 22 default). Signals are what make this work: they notify the scheduler when state changes. CLAUDE.md also says not to set `OnPush` explicitly (default in v22) and not to put `standalone: true` (default).
+### 2.6 Resources: `resource` / `rxResource`
+
+An **async state machine exposed as signals**: `value()`, `isLoading()`, `error()`, `status()` (`idle | loading | reloading | resolved | error | local`), `hasValue()`, `reload()`, `set()`. `rxResource` takes a `stream` returning an Observable (HttpClient); `resource` takes a Promise `loader`.
+
+* `params: () => this.id()` makes the request **reactive**: when `id()` changes, the previous request is **cancelled** and a new one starts. If `params` returns `undefined` the resource stays **idle** (no request).
+* **`value()` throws when the resource is in the error state.** `hasValue()` is the safe check, hence `hasValue() ? value() : fallback` everywhere.
+* A resource has no manual subscription to clean: Angular unsubscribes on destroy.
+* Why not `toSignal(http.get())`? `toSignal` only converts an observable; it has no loading flag, no reload and no reactive params.
+
+### 2.7 Signal Forms (`@angular/forms/signals`)
+
+`form(modelSignal, schemaFn)` wraps a **model signal** and returns a *field tree* mirroring it. Each field is a function returning a state object with signals: `value()`, `valid()`, `invalid()`, `errors()`, `touched()`, `dirty()`. `[formField]="myForm.name"` binds an `<input>` (the `FormField` directive, imported in the component) and parses `type="number"` into a number. Validators are declared in the schema: `required`, `min`, `pattern`, `email`, `minLength`… and `debounce(path.search, 300)` delays when the model is updated. The **model signal stays the single source of truth**: the component reads `this.model()` and derives from it with `computed`. Compared with Reactive Forms: no `FormBuilder`, no `get name()` getters, no `valueChanges` subscription, fully typed.
+
+### 2.8 Built-in control flow
+
+`@if (x; as y) {…} @else {…}`, `@for (item of list; track item.id) {…} @empty {…}`, `@switch`. Faster than `*ngIf/*ngFor` (no directive instances), `track` is **mandatory** in `@for` (lets Angular reuse DOM nodes when an array is replaced). Contextual variables: `$index`, `$odd`, `$even`, `$first`, `$last`, `$count`. `@if (cv(); as cv)` evaluates the signal once and gives it a typed non-null alias for the block.
+
+### 2.9 `class` and `style` bindings instead of `ngClass`/`ngStyle`
+
+`[class.list-group-item-primary]="$odd"` toggles one class from a boolean; `[style.width.px]="size()"` sets one style. They are native template syntax, no directive import, cheaper.
+
+### 2.10 Standalone components, `imports`, DI with `inject()`
+
+A standalone component declares what its template uses in `imports: [...]` (components, directives, pipes). `inject(Token)` replaces constructor injection and works in field initializers (`private http = inject(HttpClient)`), which is also what makes `rxResource(...)`/`effect(...)` legal as fields (injection context). `@Injectable({ providedIn: 'root' })` = one tree-shakable singleton for the whole app.
+
+### 2.11 Routing: lazy loading and input binding
+
+`loadComponent: () => import('./x').then(m => m.X)` creates a **separate chunk** loaded on first navigation (smaller initial bundle). `RouterModule.forRoot(routes, { bindToComponentInputs: true })` (the NgModule equivalent of `withComponentInputBinding()`) maps route params, query params and route data to **component inputs of the same name**: `/cv/12` fills `id = input.required<…>()`. Route order matters: `cv/add` is declared **before** `cv/:id`, otherwise `add` would be captured as an id.
+
+### 2.12 `NgOptimizedImage`
+
+`<img [ngSrc]="…" [width]="…" [height]="…" [alt]="…">` — requires explicit dimensions (avoids layout shift), lazy-loads by default and warns about the LCP image (`priority`). It **does not react to `width`/`height` changing after the first render** (NG02953): bind them once at creation. Decorative images use `alt=""`.
+
+### 2.13 Change detection, zone.js and OnPush
+
+This branch still uses **zone.js** (`polyfills: ["zone.js"]`): zone patches async APIs and triggers a check after each. Components with `ChangeDetectionStrategy.Eager` are checked every cycle; **OnPush** components (default in v22) are checked only when an input signal changes, an event fires in them, a signal read in their template changes, or `markForCheck` is called. Signals give OnPush exactly the notifications it needs — that is why the explicit `Eager` could be dropped, and why the code is ready for zoneless.
+
+### 2.14 Pipes
+
+A **pure** pipe (`defaultImage`) is re-evaluated only when its input reference changes — an easy, memoized template transform. Used with `NgOptimizedImage`: `'assets/images/' + (cv().path | defaultImage)`.
+
+### 2.15 HTTP, `HttpClient` and RxJS operators kept
+
+Commands (add / delete) and one-shot queries (`getCvById`, `selectByName`) stay `Observable`s: they are **events**, not state. `tap` runs a side effect on success without altering the stream (`tap(() => this.cvsResource.reload())`). The `rxResource` is the *state*.
+
+### 2.16 Testing concepts
+
+* `TestBed.configureTestingModule({ imports: [Cmp], providers: [...] })` builds a test injector; standalone components go in `imports`.
+* `provideHttpClient()` + `provideHttpClientTesting()` replace the real backend; `HttpTestingController.expectOne(url).flush(body)` answers a request, `.flush('x', {status: 500, statusText: ''})` simulates an error, `expectNone` asserts no request.
+* `jasmine.createSpyObj('ToastrService', ['success'])` + `{ provide: ToastrService, useValue: spy }` replaces a dependency.
+* **With zone.js, `fixture.whenStable()` does not run change detection** — call `fixture.detectChanges()`. `src/app/testing/render.ts` does `detectChanges → one macrotask → detectChanges`.
+* `whenStable()` never resolves while an HTTP request is pending (the resource's list request in `CvService`), so component specs yield a macrotask instead.
+* Debounced code is tested by really waiting longer than the delay (`setTimeout(400)`).
 
 ---
 
-## 3. TTC Calculator
-
-### 3.1 Files
+## 3. TTC Calculator (`src/app/ttc/`)
 
 ```
-src/app/ttc/
-  ttc.pricing.ts       pure business logic (no Angular)
-  ttc.ts               component: form model + computed
-  ttc.pricing.spec.ts  unit tests of the logic
-  ttc.spec.ts          component tests
+ttc.pricing.ts            pure business logic, no Angular
+ttc.component.ts / .html  presentation + form model
+ttc.pricing.spec.ts       9 specs (logic)
+ttc.component.spec.ts     4 specs (component)
 ```
-Route: `/ttc`, **lazy-loaded** (`loadComponent`).
+Route `ttc` (lazy) + navbar link "TTC".
 
-### 3.2 Design decision: separate logic from UI
-
-All maths is in `ttc.pricing.ts` as pure functions. Reasons: testable without TestBed, reusable (e.g. by a cart), the component stays a thin binding layer (single responsibility).
+### 3.1 `ttc.pricing.ts` — logic separated from UI
 
 ```ts
 export const DISCOUNT_TIERS: readonly DiscountTier[] = [
   { above: 15, rate: 0.3 },
   { above: 10, rate: 0.2 },
 ];
-
 export function discountRateFor(quantity: number): number {
   return DISCOUNT_TIERS.find((tier) => quantity > tier.above)?.rate ?? 0;
 }
-
-export function computePricing(priceHt, quantity, vat): Pricing {
-  const price = sanitize(priceHt);
-  const qty = sanitize(quantity);
-  const unitTtc = price * (1 + sanitize(vat) / 100);
-  const gross = unitTtc * qty;
-  const discountRate = discountRateFor(qty);
-  const discount = gross * discountRate;
-  return { unitTtc, discountRate, discount, total: gross - discount };
-}
+export function computePricing(priceHt, quantity, vat): Pricing { /* unitTtc, discountRate, discount, total */ }
 ```
+* **Table-driven rules** (a light *Strategy*): the discount scale is data, not an `if/else` chain. A new tier is one line (open/closed principle). Tiers are sorted from highest to lowest because `find` returns the first match.
+* **Pure functions**: testable without TestBed, reusable by a cart, the component stays thin (single responsibility).
+* `sanitize` turns `NaN` (an emptied number input), negatives and `Infinity` into `0`: the UI never shows `NaN`.
+* **Boundary decision:** the text says "between 10 and 15 → 20 %" but the mock-up shows **quantity 10 → Discount $0.00**. So the rule is `quantity > 10` → 20 %, `> 15` → 30 %. To include 10, change `above: 10` to `above: 9`. Total shown = gross TTC − discount (12 × 118 = 1416, discount 283.20, total 1132.80).
 
-* **Data-driven discount table** instead of `if/else if` chains → adding a 40 % tier above 50 is one line (open/closed principle; a light *Strategy*/table-driven approach).
-* Tiers sorted from highest to lowest so `find` returns the first (highest) match.
-* `sanitize` turns `NaN` (empty `<input type=number>`), negatives and `Infinity` into `0` so the UI never shows `NaN`.
-
-### 3.3 The boundary decision (be ready to defend it)
-
-The text says "*entre 10 et 15 → 20 %*" and "*supérieur à 15 → 30 %*". The mock-up shows **quantity 10 → Discount $0.00**. So 10 is **excluded** from the first tier. Final rule:
-
-| Quantity | Rate |
-|---|---|
-| ≤ 10 | 0 % |
-| 11 – 15 | 20 % |
-| ≥ 16 | 30 % |
-
-This is covered by `it.each` tests (1, 10, 11, 15, 16, 100). If your professor says 10 should be included, change `above: 10` to `above: 9` (quantities are integers) — one token.
-
-*Total shown = gross TTC − discount* (at 12 pieces, 100 HT, 18 %: 12 × 118 = 1416; discount 283.20; total 1132.80 — verified in a real browser).
-
-### 3.4 The component
+### 3.2 `ttc.component.ts`
 
 ```ts
 private readonly model = signal<TtcModel>({ prixHt: 0, quantite: 1, tva: 18 });
-
-protected readonly ttcForm = form(this.model, (path) => {
-  min(path.prixHt, 0);
-  min(path.quantite, 0);
-  min(path.tva, 0);
-});
-
+protected readonly ttcForm = form(this.model, (path) => { min(path.prixHt, 0); min(path.quantite, 0); min(path.tva, 0); });
 protected readonly pricing = computed(() => {
   const { prixHt, quantite, tva } = this.model();
   return computePricing(prixHt, quantite, tva);
 });
 ```
-
-* `model` is the **single source of truth**. `form(model, schema)` gives a `FieldTree`; `[formField]="ttcForm.prixHt"` two-way-binds the input to `model().prixHt` (and applies number parsing for `type="number"`).
-* `pricing` is a `computed`: when any field changes, `model` changes → `pricing` is recomputed lazily when the template reads it. **No event handlers, no `ngModel`, no `valueChanges`, no `ngOnChanges`.**
-* Template uses `currency` (gives the `$118.00` format of the mock-up) and `percent` pipes, native `@if`, `<label for>` on each input (accessibility), `aria-live="polite"` on the results so screen readers announce changes.
-* Bootstrap colour utilities (`bg-*-subtle text-*-emphasis`) reproduce the blue/green/red boxes while keeping WCAG AA contrast.
-* `private`/`protected`: only what the template needs is exposed (`protected`), nothing is public by accident.
+Data flow: **typing → field → `model` signal → `pricing` computed → template**. There is no `(input)` handler, no `ngModel`, no `valueChanges`. The defaults are the initial value of the model signal (price 0, quantity 1, VAT 18 as required). The template uses `currency` (`$118.00`) and `percent` pipes, `<label for>` on each input, `aria-live="polite"` on the results so assistive technology announces them, and Bootstrap `*-subtle` colours (AA contrast) for the blue/green/red boxes of the mock-up.
 
 ---
 
-## 4. The cvTech port and its signal architecture
+## 4. cvTech: before → after
 
-### 4.1 What the starter did (RxJS/NgModule) → what it does now
-
-| Starter (Angular 18, NgModule) | This branch (Angular 22, signals) |
+| Starter (RxJS + imperative) | After (signals) |
 |---|---|
-| `CvService.selectCv$` = private `Subject` + `asObservable()`; `CvComponent` subscribed manually | `selectedCv` = private writable `signal` exposed with `asReadonly()`; read directly in the template |
-| `CvComponent` constructor: `getCvs().subscribe(...)` with `next/error`, fake cvs on error + toast | `rxResource` in the service; `cvs` = `computed` (API list, else fake list); `isFallback` = `computed`; the error toast is an `effect` |
-| `EmbaucheService.embauchees: Cv[]` mutated with `push` and returned **by reference** (the component held that array) | `signal<readonly Cv[]>` updated immutably; `embauchees` exposed read-only |
-| `@Input()` / `@Output()` decorators, `*ngIf`, `*ngFor`, `ngClass`, `ngStyle` | `input()`, native `@if/@for`, `[class.x]`, `[style]`/width+height attributes |
-| Constructor injection | `inject()` |
-| `DetailsCvComponent`: `ActivatedRoute.snapshot.params['id']` once in `ngOnInit` + `subscribe` | route param bound to `input()` and fed to a reactive `rxResource` (re-fetches if the id changes) |
-| `AddCvComponent`: `FormBuilder` + getters `name`, `firstname`… | Signal Form: a model signal + schema validators, no getters |
-| `AuthService.isAuthenticated()` read `localStorage` on **every** call | `isAuthenticated` is a `computed` over one state signal restored once at startup |
-| `AuthGuard` class + `AuthInterceptor` class with `HTTP_INTERCEPTORS` | functional `CanActivateFn` + `HttpInterceptorFn` |
-| NgModule `declarations` + `AppRoutingModule` | standalone components, lazy `loadChildren`/`loadComponent` |
+| `CvService.selectCv$`: private `Subject` + `asObservable()`; `CvComponent` subscribed in its constructor | `#selectedCv` signal + read-only `selectedCv`; read in the template |
+| `CvComponent` constructor: `getCvs().subscribe(next, error)`, fake list + toast on error | `rxResource` in the service, `cvList` and `isFallback` are `computed`; the toast is an `effect` |
+| `EmbaucheService`: `Cv[]` mutated with `push`, returned by reference; `indexOf` (reference equality) | `signal<readonly Cv[]>`, immutable `update`, `some(e => e.id === cv.id)` |
+| `@Input()`, `*ngIf/*ngFor`, `ngClass`, `ngStyle` | `input()`, `@if/@for`, `[class.x]`, `width/height` bound once |
+| `DetailsCv`: `ActivatedRoute.snapshot.params['id']` once in `ngOnInit` + `subscribe` | `id` input bound from the route + `rxResource({ params })` |
+| `AddCv`: `FormBuilder`, 6 getters, `form.value as Cv` | Signal Form: model signal + schema, builds a real `Cv` |
+| `Autocomplete`: empty stub (form + unused rxjs imports) | Signal Form with `debounce(300)` + reactive `rxResource` |
+| Eager routes | `loadComponent` lazy routes |
 
-### 4.2 Files
+### 4.1 Where each piece of state lives (the "architecture of the signal")
 
-```
-src/app/config/            api.config.ts, const.config.ts, routes.config.ts
-src/app/cv/
-  model/cv.ts              Cv class (unchanged from the starter)
-  pipes/default-image.pipe.ts
-  services/cv.service.ts         ← cvs, selectedCv, API calls
-  services/embauche.service.ts   ← embauchees
-  cv/cv.ts                 page (list + autocomplete + card + embauchés)
-  list/list.ts             list of cvs
-  item/item.ts             one cv (click = select)
-  cv-card/cv-card.ts/.html rotating card + "embaucher" + "détails"
-  embauche/embauche.ts     pré-embauchés
-  details-cv/              /cv/:id, delete if authenticated
-  add-cv/                  /cv/add (guarded), Signal Form
-  autocomplete/autocomplete.ts   search by name
-  cv.routes.ts             lazy child routes
-src/app/auth/
-  services/auth.service.ts       ← user state as signals
-  guards/auth.guard.ts           functional guard
-  interceptors/auth.interceptor.ts   functional interceptor
-  login/login.ts                 Signal Form
-  dto/*.ts
-src/app/components/navbar/navbar.ts
-public/assets/images/      cv.png (default avatar), as.jpg, tim_logo.png, rotating_card_thumb2.png
-src/styles/rotating-card.css   (imported from styles.css)
-```
+Rule: *state shared by several components, or that must survive navigation → signal in a root service; state used by one component → local signal; anything derivable → `computed`.*
 
-### 4.3 Where each piece of state lives (the "architecture of the signal")
-
-Rule: *state needed by several components or that must survive navigation → signal in a root service; state used by one component → local signal; everything derivable → `computed`.*
-
-| State | Owner | Kind | Why there |
-|---|---|---|---|
-| list of cvs, loading/error | `CvService.cvsResource` | `rxResource` | async data, loaded once, reloadable |
-| `cvs` shown | `CvService.cvs` | `computed` | API value or fake fallback; never stored twice |
-| `isFallback` | `CvService` | `computed` | derived from `error()` |
-| selected cv | `CvService.#selectedCv` (+ `selectedCv` read-only) | `signal` | written by `Item` and `Autocomplete`, read by `CvComponent`/card; survives `/cv` ↔ `/cv/:id` |
-| hired cvs | `EmbaucheService.#embauchees` | `signal` | written by the card, read by `Embauche` |
-| auth state (token, userId, email) | `AuthService.#state` | `signal` | read by navbar, details, guard, interceptor |
-| `isAuthenticated`, `token`, `userId`, `email` | `AuthService` | `computed` | derived from `#state` |
-| search text | `Autocomplete.model` | `signal` (form model) | local to the search box |
-| one cv on the details page | `DetailsCv.cvResource` | `rxResource` keyed on `id()` | local; changes with the route |
-| form values | `AddCv.model`, `Login.credentials` | `signal` (form model) | local |
-
-Data flow (unidirectional, events up):
+| State | Owner | Kind |
+|---|---|---|
+| list of cvs + loading/error | `CvService.cvsResource` | `rxResource` |
+| cvs shown | `CvService.cvList` | `computed` (API value, else fake list) |
+| API failed? | `CvService.isFallback` | `computed` |
+| selected cv | `CvService.#selectedCv` / `selectedCv` | `signal` + read-only view |
+| hired cvs | `EmbaucheService.#embauchees` / `embauchees` | `signal` + read-only view |
+| search text | `AutocompleteComponent.model` | local `signal` (form model) |
+| one cv (details page) | `DetailsCvComponent.cvResource` | local `rxResource` keyed on `id()` |
+| add form values | `AddCvComponent.model` | local `signal` (form model) |
 
 ```
-Item ──click──▶ CvService.selectCv() ──▶ #selectedCv (signal) ──▶ CvComponent.selectedCv ──▶ CvCard [cv]
-CvCard ──embaucher()──▶ EmbaucheService.embauche() ──▶ #embauchees ──▶ Embauche
-Autocomplete ──typing (debounced)──▶ rxResource ──▶ results ──click──▶ CvService.selectCv()
-CvService.cvsResource ──▶ cvs (computed) ──▶ CvComponent ──[cvs]──▶ List ──[cv]──▶ Item
+ItemComponent ─click─▶ CvService.selectCv() ─▶ #selectedCv ─▶ CvComponent.selectedCv() ─▶ <app-cv-card [cv]>
+CvCardComponent ─embaucher()─▶ EmbaucheService.embauche() ─▶ #embauchees ─▶ EmbaucheComponent
+AutocompleteComponent ─typing (debounced 300 ms)─▶ rxResource ─▶ results ─click─▶ CvService.selectCv()
+CvService.cvsResource ─▶ cvList (computed) ─▶ CvComponent.cvs() ─[cvs]─▶ ListComponent ─[cv]─▶ ItemComponent
 ```
-
-### 4.4 `CvService` (read this one until you can write it)
-
-```ts
-@Service()
-export class CvService {
-  private readonly http = inject(HttpClient);
-  private readonly fakeCvs: readonly Cv[] = [ new Cv(1,…), new Cv(2,…) ];
-
-  readonly cvsResource = rxResource({ stream: () => this.http.get<Cv[]>(API.cv) });
-  readonly isFallback = computed(() => this.cvsResource.error() !== undefined);
-  readonly cvs = computed<readonly Cv[]>(() =>
-    this.cvsResource.hasValue() ? this.cvsResource.value() : this.fakeCvs);
-
-  readonly #selectedCv = signal<Cv | null>(null);
-  readonly selectedCv = this.#selectedCv.asReadonly();
-  selectCv(cv: Cv): void { this.#selectedCv.set(cv); }
-
-  getCvById(id: number)  { return this.http.get<Cv>(API.cv + id); }
-  deleteCvById(id: number) { return this.http.delete(API.cv + id).pipe(tap(() => {
-      if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
-      this.cvsResource.reload(); })); }
-  addCv(cv: Cv) { return this.http.post<Cv>(API.cv, cv).pipe(tap(() => this.cvsResource.reload())); }
-  selectByName(name: string) { /* GET with a LoopBack `filter` query param */ }
-}
-```
-
-* **`@Service()`** — Angular 22's decorator for root singletons (replaces `@Injectable({providedIn:'root'})`).
-* **`rxResource`** replaces `getCvs().subscribe(...)`. It exposes `value/isLoading/error/status/hasValue/reload` as signals and unsubscribes on its own. Because the service is a root singleton the list is fetched **once**, not at every visit of `/cv`; hence `reload()` after add/delete so the list never goes stale (the starter re-fetched in the page constructor).
-* **`hasValue()` and not `value()`** — reading `value()` of a resource in the error state **throws**; `hasValue()` is safe and lets us fall back to `fakeCvs`.
-* **Mutations stay Observables** (`add`, `delete`, `getCvById`, `selectByName`): a one-shot request is an *event*, not *state*; signals model state. We use `tap` to update state on success.
-* **`#selectedCv` + `asReadonly()`** — only the service writes; components can read. It replaces the `Subject`+`asObservable()` idiom. Behavioural difference: a `Subject` has no value (a late subscriber misses past selections, so a freshly created `CvComponent` showed no card); a signal **keeps** the last selection, so coming back from `/cv/3` still shows the selected card.
-* On delete, the selection is cleared if it was the deleted cv (a stale selected card would be a bug).
-
-### 4.5 `EmbaucheService`
-
-```ts
-@Service()
-export class EmbaucheService {
-  readonly #embauchees = signal<readonly Cv[]>([]);
-  readonly embauchees = this.#embauchees.asReadonly();
-  embauche(cv: Cv): boolean {
-    if (this.#embauchees().some((e) => e.id === cv.id)) return false;
-    this.#embauchees.update((list) => [...list, cv]);
-    return true;
-  }
-}
-```
-Two real fixes versus the starter: (1) the duplicate check compares **ids**, not references (`indexOf` fails for a cv re-fetched from the API); (2) the array is **replaced** instead of `push`ed — signals detect change by `Object.is`, so an in-place mutation would not notify anyone (and the starter only worked because the component kept the same array reference and the zone triggered change detection).
-
-### 4.6 Components
-
-* **`CvComponent`** (smart/page): injects `CvService`, `ToastrService`, `Logger`; exposes `cvs` and `selectedCv` (the service's signals); template `<app-list [cvs]="cvs()"/>`, `<app-cv-card [cv]="selectedCv()"/>`, `<app-embauche/>`. The error toast is an **`effect`**:
-  ```ts
-  effect(() => { if (this.cvService.isFallback()) this.toastr.error('…données fictives…'); });
-  ```
-  A legitimate effect: it talks to the outside world (a toast) when state changes; it does not write any signal.
-* **`List`**: `cvs = input<readonly Cv[]>([])`; `@for (cv of cvs(); track cv.id)`; the zebra striping uses `$odd` and `[class.list-group-item-primary]` (no `ngClass`).
-* **`Item`**: `cv = input.required<Cv>()`, `size = input(50)`; the click calls `cvService.selectCv(this.cv())`. The root is a `<button>` (keyboard accessible; the starter used a clickable `div`). Image: `NgOptimizedImage` with `[ngSrc]`, `[width]`/`[height]` bound to `size()` — this also fixes the starter's `heigth` typo in its `ngStyle`.
-* **`CvCard`**: `cv = input<Cv | null>(null)`; `@if (cv(); as cv)`; `embaucher()` calls `EmbaucheService.embauche()` and toasts success/warning. "détails" is an `<a [routerLink]>` (a link navigates; the starter put `routerLink` on a `button`).
-* **`Embauche`**: `embauchees = inject(EmbaucheService).embauchees` (the signal itself is bound), `@if (embauchees().length)`, `@for … track embauchee.id`.
-* **`DefaultImagePipe`**: unchanged, pure pipe; empty/blank `path` → `cv.png`.
-* **`DetailsCv`**:
-  ```ts
-  id = input.required({ transform: numberAttribute });   // route param :id → number
-  private readonly cvResource = rxResource({
-    params: () => this.id(),
-    stream: ({ params }) => this.cvService.getCvById(params),
-  });
-  protected readonly cv = computed(() => this.cvResource.hasValue() ? this.cvResource.value() : null);
-  constructor() { effect(() => { if (this.cvResource.error()) this.router.navigate([APP_ROUTES.cv]); }); }
-  ```
-  `withComponentInputBinding()` (already in `app.config.ts`) copies the `:id` URL segment into the `id` input; `numberAttribute` converts the string (replaces the starter's `+id`). `params` makes the request reactive (re-fetch and cancel the previous one if the id changes while the component stays alive). Error → back to the list, as in the starter. The **Delete** button shows only `@if (authService.isAuthenticated())`.
-* **`AddCv`** (Signal Form):
-  ```ts
-  private readonly model = signal<AddCvModel>({ name:'', firstname:'', path:'', job:'', cin:'', age:0 });
-  protected readonly addForm = form(this.model, (path) => {
-    required(path.name); required(path.firstname); required(path.job);
-    required(path.cin); pattern(path.cin, /^[0-9]{8}$/); required(path.age);
-  });
-  ```
-  Same rules as the starter (`name/firstname/job` required, `cin` 8 digits, `age` required). Template: `[formField]`, `<label for>`, error blocks `@if (field().touched() && field().invalid())` with `role="alert"`, submit disabled while `addForm().invalid()`. `addCv()` builds a `Cv` (note the constructor order `id, firstname, name, job, path, cin, age`), posts, then navigates to `/cv` and toasts.
-* **`Autocomplete`** (the starter's component was an empty stub: a form with a `search` control and unused rxjs imports; it is completed here with signals):
-  ```ts
-  private readonly model = signal({ search: '' });
-  protected readonly searchForm = form(this.model, (path) => { debounce(path.search, 300); });
-  private readonly searchResource = rxResource({
-    params: () => this.model().search.trim() || undefined,   // undefined ⇒ resource stays idle
-    stream: ({ params }) => this.cvService.selectByName(params),
-  });
-  ```
-  `debounce(…, 300)` is the Signal-Forms replacement of `debounceTime(300)`: the model signal changes only 300 ms after the last keystroke. The resource re-runs (cancelling the in-flight request, i.e. the role of `switchMap`) when the value changes; `distinctUntilChanged` is implicit because a signal doesn't notify for an equal value. Clicking a result calls `selectCv`.
-
-### 4.7 Auth (signals, no state library)
-
-```ts
-const STORAGE_KEY = 'auth';
-function restoreState(): AuthState | null { /* JSON.parse in try/catch + shape check */ }
-
-@Service()
-export class AuthService {
-  readonly #state = signal<AuthState | null>(restoreState());   // reloaded when the app loads
-  readonly isAuthenticated = computed(() => this.#state() !== null);
-  readonly token  = computed(() => this.#state()?.token  ?? null);
-  readonly userId = computed(() => this.#state()?.userId ?? null);
-  readonly email  = computed(() => this.#state()?.email  ?? null);
-
-  login(credentials) { return this.http.post<LoginResponseDto>(API.login, credentials)
-      .pipe(tap((r) => { /* #state.set({token:r.id, userId:r.userId, email:credentials.email}); persist */ })); }
-  logout() { this.#state.set(null); /* remove from localStorage */ }
-}
-```
-* The API's login response contains `{id (the token), ttl, created, userId}` but **no email**, so the email comes from the submitted credentials.
-* One JSON entry (`auth`) is saved; the starter used a bare `token` key. Corrupted or incomplete JSON is treated as "not logged in" (tested).
-* `authGuard` (functional): `inject(AuthService).isAuthenticated() || router.createUrlTree(['login'])` — returning a `UrlTree` is the recommended redirect (the starter called `router.navigate` and returned `false`).
-* `authInterceptor` (functional): adds `Authorization: <token>` when a token exists; registered with `provideHttpClient(withInterceptors([authInterceptor]))` (the starter used `withInterceptorsFromDi` + `HTTP_INTERCEPTORS`).
-* `Navbar` reads `authService.isAuthenticated()` / `email()`; the "Logout" is a `<button>`.
-* **Why no effect to persist?** Persistence happens directly in `login`/`logout` where the state changes; an effect would add an asynchronous hidden step for no benefit.
-
-### 4.8 Routing & lazy loading
-
-```ts
-{ path: 'login', loadComponent: () => import('./auth/login/login').then(m => m.Login) },
-{ path: 'ttc',   loadComponent: () => import('./ttc/ttc').then(m => m.Ttc) },
-{ path: 'cv',    loadChildren: () => import('./cv/cv.routes').then(m => m.CV_ROUTES) },
-```
-```ts
-export const CV_ROUTES: Routes = [
-  { path: '',    loadComponent: … CvComponent },
-  { path: 'add', canActivate: [authGuard], loadComponent: … AddCv },   // before ':id' on purpose
-  { path: ':id', loadComponent: … DetailsCv },
-];
-```
-`add` must be declared **before** `:id`, otherwise `/cv/add` would match `:id`. Each page is its own chunk.
-
-### 4.9 The remaining plumbing
-
-`app.config.ts` gained `provideHttpClient(withInterceptors([authInterceptor]))`. `App` now imports only what its template uses (`RouterOutlet`, `Navbar`, `TestHttp`). `styles.css` imports `styles/rotating-card.css` (the starter's card/flip CSS) and the three images the starter's cvs reference were copied under `public/assets/images/` (Angular 22 serves `public/` as the asset root).
 
 ---
 
-## 5. Tests and verification performed
+## 5. File-by-file walkthrough (`src/app/cv/`)
 
-Unit tests (Vitest, 35 passing + the 4 pre-existing failures):
-* `ttc.pricing.spec.ts`, `ttc.spec.ts` — see §3.
-* `cv.service.spec.ts` — API success; API failure → fake cvs + `isFallback`; selection; **delete** (DELETE request, selection cleared, list reloaded); **add** (POST then list reloaded).
-* `embauche.service.spec.ts` — empty at start, hire once, id-based identity, a new array on every hire.
-* `default-image.pipe.spec.ts` — path kept / blank → `cv.png`.
-* `auth.service.spec.ts` — default state, login stores id/email/token, state reloaded from storage, corrupted storage ignored, logout clears.
+### 5.1 `services/cv.service.ts`
 
-Real browser (Playwright/Chromium against `ng serve`, real API):
-* TTC: 12 pieces → $1,132.80 total / $283.20 discount (20 %); 10 pieces → $0 discount.
-* `/cv`: 11 cvs loaded; clicking an item shows the card; "embaucher" twice → one hired entry + a success toast + a warning toast; the autocomplete finds "Bailly" and selecting it shows its card.
-* `/cv/add` without login → redirected to `/login`; with a stored session → page shown, navbar shows the email, **Add Cv** and **Logout**; a 3-digit CIN shows the error and keeps the submit button disabled.
-* `/cv/1330` → details; **Delete** button visible when logged in (not clicked — the API is shared); `/cv/99999999` → back to `/cv`.
-* Delete/add against the real API were deliberately **not** exercised in the browser to avoid altering the shared data; they are covered by the `HttpTestingController` tests.
+```ts
+cvsResource = rxResource({ stream: () => this.getCvs() });
+isFallback = computed(() => this.cvsResource.error() !== undefined);
+cvList = computed<readonly Cv[]>(() =>
+  this.cvsResource.hasValue() ? this.cvsResource.value() : this.getFakeCvs());
+#selectedCv = signal<Cv | null>(null);
+selectedCv = this.#selectedCv.asReadonly();
+selectCv(cv: Cv) { this.#selectedCv.set(cv); }
+deleteCvById(id) { return this.http.delete(API.cv + id).pipe(tap(() => {
+  if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
+  this.cvsResource.reload(); })); }
+addCv(cv) { return this.http.post<Cv>(API.cv, cv).pipe(tap(() => this.cvsResource.reload())); }
+```
+* The service is a root singleton, so the list is fetched **once**, not at every visit of `/cv` as in the starter (it re-fetched in the component constructor). Therefore add/delete call `reload()` — otherwise the list would go stale.
+* A deleted cv must not stay selected → the selection is cleared in the same `tap`.
+* A `Subject` has **no memory**: a component created later misses past selections. A signal keeps the **last value**, so the selected card is still there after visiting `/cv/3` and coming back.
+* Unchanged on purpose: `getCvs`, `getCvById`, `getFakeCvs`, `findCvById`, `deleteCv`, `selectByProperty` (and their original JSDoc). `selectByName` now returns `Cv[]` instead of `any`.
+* `private cvs` (the fake list) and `cvList` are different things: the first is a fixture used as a fallback, the second is what the UI shows.
 
-Commands:
+### 5.2 `services/embauche.service.ts`
+
+```ts
+#embauchees = signal<readonly Cv[]>([]);
+embauchees = this.#embauchees.asReadonly();
+embauche(cv: Cv): boolean {
+  if (this.#embauchees().some((e) => e.id === cv.id)) return false;
+  this.#embauchees.update((list) => [...list, cv]);
+  return true;
+}
+```
+Two real fixes: duplicates are detected **by id** (a cv re-fetched from the API is a different object, so `indexOf` would hire it twice), and the array is **replaced** (the starter's `push` only worked because the component kept the same array reference and zone.js triggered a check; an in-place mutation notifies nobody in a signal world).
+
+### 5.3 `cv/cv.component.*` (smart/page component)
+
+```ts
+cvs = this.cvService.cvList;
+selectedCv = this.cvService.selectedCv;
+constructor() {
+  this.logger.logger("je suis le cvComponent");
+  this.toastr.info("Bienvenu dans notre CvTech");
+  effect(() => { if (this.cvService.isFallback()) this.toastr.error(`…données fictives…`); });
+}
+```
+The component holds **references to the service's signals** (no copy, no subscription). The template calls them: `<app-list [cvs]="cvs()">`, `<app-cv-card [cv]="selectedCv()">`, plus `<app-autocomplete>` and `<app-embauche>`. The effect only reads `isFallback()` and fires a toast (a side effect); it writes no signal. `date` is a plain class field (a constant, no reactivity needed).
+
+### 5.4 `list/list.component.*`
+
+`cvs = input<readonly Cv[]>([])`; `@for (cv of cvs(); track cv.id)`; zebra rows with `[class.list-group-item-primary]="$odd"` / `[class.list-group-item-secondary]="!$odd"`. The starter tracked by object (`track cv`); tracking by `id` keeps the DOM stable when the list is reloaded.
+
+### 5.5 `item/item.component.*`
+
+`cv = input.required<Cv>()`, `size = input(50)`; the click calls `cvService.selectCv(this.cv())`. The clickable root is now a `<button type="button">` (focusable, Enter/Space, announced as a button — the starter used a clickable `div`). The image uses `NgOptimizedImage` with `[width]="size()" [height]="size()"` (this also fixes the starter's `heigth` typo that made the height style ineffective). `size` is set once by the parent (`50` default, `150` in the hired list), which is compatible with `NgOptimizedImage`'s "no change after init" rule.
+
+### 5.6 `cv-card/cv-card.component.*`
+
+`cv = input<Cv | null>(null)`; `@if (cv(); as cv)`; `embaucher()` asks `EmbaucheService.embauche()` and toasts `success` or `warning`. "détails" is an `<a [routerLink]="['/cv', cv.id]">` (a navigation is a link; the starter put `routerLink` on a `button`). Static images use `NgOptimizedImage` with real dimensions (596×337 for the cover, 100×100 for the avatar via CSS); the decorative cover has `alt=""`; the Font Awesome icon is `aria-hidden`. The flipping card markup and CSS (`rotating-card.css`) are unchanged.
+
+### 5.7 `embauche/embauche.component.*`
+
+`embauchees = inject(EmbaucheService).embauchees` — the **signal itself** is exposed, so the list updates the moment the service hires someone (in the starter the component copied a reference once in its constructor). `@if (embauchees().length)` + `@for … track embauchee.id`.
+
+### 5.8 `details-cv/details-cv.component.*`
+
+```ts
+id = input.required({ transform: numberAttribute });
+private cvResource = rxResource({ params: () => this.id(), stream: ({ params }) => this.cvService.getCvById(params) });
+cv = computed(() => (this.cvResource.hasValue() ? this.cvResource.value() : null));
+constructor() { effect(() => { if (this.cvResource.error()) this.router.navigate([APP_ROUTES.cv]); }); }
+```
+`bindToComponentInputs` copies the `:id` URL segment into `id`; `numberAttribute` turns the string into a number (replaces `+id`). Because `params` is reactive, `/cv/1 → /cv/2` re-fetches (the starter's `snapshot` would show the first cv forever). A missing cv redirects to the list, like the starter. **Delete** is shown only `@if (authService.isAuthenticated())` — the existing auth signal; `deleteCv` calls the service whose `tap` clears the selection and reloads the list. `deleteCv`/`ToastrService` behaviour is unchanged.
+
+### 5.9 `add-cv/add-cv.component.*`
+
+```ts
+private model = signal<AddCvModel>({ name: "", firstname: "", path: "", job: "", cin: "", age: 0 });
+addForm = form(this.model, (path) => {
+  required(path.name); required(path.firstname); required(path.job);
+  required(path.cin); pattern(path.cin, /^[0-9]{8}$/); required(path.age);
+});
+```
+Same rules as the starter (`name`, `firstname`, `job` required; `cin` required and 8 digits; `age` required). Template: `<label for>` + `[formField]`, errors shown with `@if (field().touched() && field().invalid())` and `role="alert"`, submit disabled while `addForm().invalid()`, `(submit)` with `preventDefault`. `addCv()` builds a real `Cv` (constructor order: `id, firstname, name, job, path, cin, age`), posts it and navigates to `/cv`. The service reloads the list after success.
+
+### 5.10 `autocomplete/autocomplete.component.*`
+
+```ts
+private model = signal({ search: "" });
+searchForm = form(this.model, (path) => { debounce(path.search, 300); });
+private searchResource = rxResource({
+  params: () => this.model().search.trim() || undefined,
+  stream: ({ params }) => this.cvService.selectByName(params),
+});
+results = computed(() => this.searchResource.hasValue() ? this.searchResource.value() : []);
+```
+Equivalent of `debounceTime(300) + distinctUntilChanged() + switchMap(...)` without those operators: `debounce` delays the model update; a signal does not notify for an identical value (distinct); the resource **cancels the previous request** when `params` changes (switch); an empty string gives `undefined` → idle → no request. A click on a result calls `selectCv`, so the card shows it. The starter's component was an empty stub; it is completed and placed above the list.
+
+### 5.11 `app-routing.module.ts` and navbar
+
+```ts
+{ path: "ttc", loadComponent: () => import("./ttc/ttc.component").then((m) => m.TtcComponent) },
+{ path: "cv", loadComponent: () => import("./cv/cv/cv.component").then((m) => m.CvComponent) },
+{ path: "cv/add", loadComponent: …AddCvComponent, canActivate: [AuthGuard] },
+{ path: "cv/:id", loadComponent: …DetailsCvComponent },
+RouterModule.forRoot(routes, { bindToComponentInputs: true })
+```
+The guard, login, `**` route and every other route are unchanged. `bindToComponentInputs` is required for `DetailsCvComponent.id`; existing components that read `ActivatedRoute` are unaffected. One "TTC" link was added to the navbar.
+
+---
+
+## 6. Compatibility with the `signal` branch and how to move it
+
+Constraints respected: Angular 22.2.x APIs only (`@angular/forms/signals`, `rxResource`, `input()`), `@relynn/ngx-toastr`, **no new dependency**, no change to `package.json`, `angular.json`, `tsconfig`, auth, todo or rainbow; `strictTemplates` and the production AOT build pass; Karma/Jasmine specs.
+
+The work is **one commit on top of `origin/signal`** (the branch pushed to `BitravenS/angular-tp1`). To bring it into the update repo:
+
 ```bash
-npm ci --legacy-peer-deps
-npx ng serve          # /ttc , /cv , /cv/add , /login
-npx ng test --watch=false
-npx ng build
+cd angular-tp1-update
+git checkout signal
+git remote add tp1 https://github.com/BitravenS/angular-tp1
+git fetch tp1
+git cherry-pick <sha-of-the-commit>
 ```
+or, as a patch: `git format-patch -1 <sha> --stdout > ttc-cv.patch` in this repo, then `git am ttc-cv.patch` in the update repo.
+
+Files changed: `src/app/ttc/*` (new), `src/app/testing/render.ts` (new), `src/app/cv/**` (components, services, specs), `src/app/app-routing.module.ts`, `src/app/components/navbar/navbar.component.html`, this document.
 
 ---
 
-## 6. CLAUDE.md compliance checklist
+## 7. Verification performed
 
-standalone only ✔ · no explicit OnPush ✔ · signals for state ✔ · lazy routes ✔ · no `@HostBinding/@HostListener` ✔ · `NgOptimizedImage` for images ✔ · `input()/output()` functions ✔ · `computed()` ✔ · Signal Forms for new forms ✔ · no `ngClass/ngStyle` (`[class.x]`) ✔ · no `CommonModule` (only `DatePipe`, `UpperCasePipe`, `CurrencyPipe`, `PercentPipe`, `NgOptimizedImage`) ✔ · native control flow ✔ · `@Service` + `inject()` ✔ · no `mutate` ✔ · labels, roles, `aria-*`, real buttons/links ✔.
-Not formally AXE-audited (no axe tool run).
+* `ng build` (production, AOT, `strictTemplates`): OK, `ttc`, `cv`, `cv/add`, `cv/:id` are lazy chunks.
+* Karma (headless Chrome): the **54 specs of the `ttc` and `cv` folders pass**; whole suite 85/92, the 7 failures being the untouched stubs listed in §0.
+  * `ttc.pricing.spec`: lab example, boundaries 1/10/11/15/16/100, discount subtraction, invalid input.
+  * `ttc.component.spec`: defaults 0/1/18, recompute on typing, 20 % at 12 pieces, no discount at 10.
+  * `cv.service.spec`: API success, API failure → fake list + `isFallback`, selection, delete (DELETE sent, selection cleared, list reloaded), add (POST then reload), search filter.
+  * `embauche.service.spec`: empty, hire once, id identity, new array each time.
+  * component specs for list, item, card, hired list, page, details (id as string, delete visibility, delete flow, 404 redirect), add-cv (validation, CIN, POST, server error) and autocomplete (no request when empty, debounced search, selection).
+* Real browser (Playwright) on `ng serve` with the live API: 12 pieces → total $1,132.80 / discount $283.20 (20 %), 10 pieces → $0.00; `/cv` loads 14 cvs, selection shows the card, "embaucher" twice → one hired + success and warning toasts, search "Bailly" lists the cv and selects it; `/cv/add` redirects to `/login` when logged out and shows for a stored session (nav shows *Add Cv* / *Logout*), a 3-digit CIN shows the error and keeps the button disabled; `/cv/1330` shows the details with the **Delete** button when logged in; `/cv/99999999` goes back to `/cv`.
+* Delete/add were **not** executed against the shared API (covered by `HttpTestingController` specs). No AXE audit was run. The browser logs 404s for image names stored in the shared API data (e.g. `Law`, `bb`): those files do not exist in `assets/images`, same as in the starter.
 
 ---
 
-## 7. Questions the professor could ask — with answers
+## 8. Questions the professor could ask — with answers
 
-### Signals fundamentals
-**Q1. What is a signal and how is it different from a plain property or a BehaviorSubject?**
-A signal is a getter-function wrapping a value with a dependency graph. Versus a property: reads are tracked, so templates/computeds update automatically without zone.js. Versus `BehaviorSubject`: synchronous with an always-available value (like a BehaviorSubject), but no `subscribe/unsubscribe`, no operators, automatic dependency tracking, glitch-free, garbage-collected with its consumers. RxJS remains better for event streams over time (debounce, switchMap, websockets).
+### Signals
+**Q1. What is a signal, and how is it different from a property or a `BehaviorSubject`?** A getter function holding a value plus a dependency graph. Reads are tracked, so views update without zone.js. Compared with `BehaviorSubject`: synchronous with an always-available value, but no `subscribe/unsubscribe`, no operators, automatic dependency tracking, glitch-free, garbage-collected with its consumers. RxJS stays better for event streams over time (debounce, retries, websockets).
 
-**Q2. `computed` vs a method called in the template?** A method runs on every change detection; `computed` runs only when a dependency changed and caches its result. It is lazy: never read → never computed.
+**Q2. `computed` vs a method in the template?** The method runs at every check; `computed` runs only when a dependency changed and caches the result. It is lazy: never read → never computed.
 
-**Q3. How does `computed` know its dependencies?** At each execution it records the signals actually read; dependencies are *dynamic*. In `cvs`, `value()` is only read when `hasValue()` is true, so `value` is a dependency only in that case.
+**Q3. How does `computed` find its dependencies?** It records the signals read during each run. In `cvList`, `value()` is read only when `hasValue()` is true, so `value` is a dependency only then.
 
-**Q4. `set` vs `update`?** `set(v)` replaces; `update(fn)` computes from the previous value. Both notify only if the new value differs by `Object.is`. That's why arrays/objects are replaced immutably (`[...list, cv]`) and why `mutate` no longer exists.
+**Q4. `set` vs `update`?** `set` replaces, `update` derives from the previous value. A signal notifies only if the new value differs by `Object.is` → arrays are replaced immutably (`[...list, cv]`).
 
-**Q5. Can you write a signal inside a `computed`?** No — it must be pure.
+**Q5. Why `asReadonly()` and a `#private` signal?** Encapsulation: only the service can change `selectedCv` or `embauchees`; consumers can read. Every mutation is in one place.
 
-**Q6. `effect` vs `computed`?** `computed` derives a value; `effect` performs side effects (toast, router, logging, storage). Copying a signal into another signal in an effect is an anti-pattern.
+**Q6. `effect` vs `computed`?** `computed` derives data; `effect` performs side effects (toast, navigation). Copying a signal into another in an effect is an anti-pattern.
 
-**Q7. Which effects did you write and why are they legitimate?** Two: the error toast in `CvComponent` (when `isFallback()` becomes true) and the redirect in `DetailsCv` (when the resource errors). Both act on the outside world (toast UI, router) and write no signal.
+**Q7. Which effects did you write and why are they legitimate?** The error toast in `CvComponent` and the redirect in `DetailsCvComponent`. Both act on the outside world (UI toast, router) and write no signal.
 
-**Q8. Why `asReadonly()` + a `#private` signal?** Encapsulation: only the service can change `selectedCv`, `embauchees`, `auth state`; consumers get a read-only `Signal`. One place to look for any mutation.
+**Q8. What is `linkedSignal` and would it fit here?** A writable signal reset from a source. `selectedCv = linkedSignal(() => this.cvList()[0])` would reset the selection when the list changes. Here the selection is set by the user and cleared on delete, so a plain signal was enough.
 
-**Q9. What is `linkedSignal` and would it fit here?** A writable signal that is recomputed from a source when the source changes (e.g. `selectedCv = linkedSignal(() => this.cvs()[0])` would reset the selection when the list changes). The selection here is only set by user action, and I explicitly clear it on delete; `linkedSignal` would be a possible alternative for that.
+**Q9. What does glitch-free mean?** If `c = computed(a + b)` and both change in the same tick, `c` is never seen with only one of them updated; it recomputes once, lazily.
 
-**Q10. What is "glitch-free"?** If `c = computed(a + b)` and both change in the same tick, `c` is never observed with only one of them updated; it recomputes once, lazily.
+**Q10. Can you write a signal inside a `computed`?** No, it must be pure.
 
-### Components / templates
-**Q11. `@Input()` vs `input()`?** `input()` returns a read-only signal usable in `computed/effect` (no `ngOnChanges`); `input.required<T>()` has no default and errors if unbound; `transform` (e.g. `numberAttribute`) converts incoming values.
+### Components and templates
+**Q11. `@Input()` vs `input()`?** `input()` returns a read-only signal usable in `computed`/`effect` (no `ngOnChanges`); `input.required` has no default and errors if unbound; `transform` converts values (`numberAttribute`).
 
-**Q12. Why does `List` receive `cvs` as an input while `Item` calls the service directly?** `List` is presentational. `Item` triggers a *global* action (select) — the starter already did this through `CvService.selectCv`. An alternative is an `output()` bubbled up by `List`; the service route avoids prop-drilling through two levels.
+**Q12. Why does `ItemComponent` call the service instead of emitting an output?** Selecting a cv is a **global** action shared by the list, the hired list and the autocomplete; going through the service avoids bubbling the same output through two levels. The starter already did it this way. An `output()` chain would also work but adds plumbing.
 
-**Q13. Why `track cv.id`?** Mandatory in `@for`; lets Angular reuse DOM nodes when the array is replaced.
+**Q13. Why `track cv.id`?** Mandatory in `@for`; keeps DOM nodes when the array is replaced (here when the list is reloaded).
 
-**Q14. Why did `ItemComponent` become a `<button>`?** A clickable `div` isn't focusable/keyboard operable (WCAG). A button gives focus, Enter/Space, role.
+**Q14. Why did the clickable `div` become a `button`?** A `div` is not focusable nor keyboard operable (WCAG). A button gives focus, Enter/Space and the right role.
 
-**Q15. How does `DetailsCv` get its `id`?** `withComponentInputBinding()` maps route params to inputs of the same name. Route params are strings → `numberAttribute`. Previously `ActivatedRoute.snapshot.params`, which would **not** update if the route reused the component with another id; the resource-with-`params` approach does.
+**Q15. Why was `ChangeDetectionStrategy.Eager` removed from these components?** The migration added it to preserve the pre-v22 behaviour. With signals, OnPush (default) refreshes exactly when a read signal or an input changes, with fewer checks. Untouched components keep `Eager` and still work.
 
-**Q16. Why did `/cv/add` have to come before `/cv/:id`?** Route matching is first-match; `add` would otherwise be captured as an id.
+**Q16. Is the app zoneless?** No: this branch keeps `zone.js`. The code is zoneless-ready since the state is in signals.
 
-### resource / HTTP
-**Q17. What is `rxResource`/`resource`?** An async-to-signal bridge. States: `idle, loading, reloading, resolved, error, local`. `rxResource` uses an Observable `stream`; `resource` uses a Promise `loader`. Exposes `value, isLoading, error, status, hasValue, reload(), set()`. `params` is a reactive function: a change cancels the in-flight request and starts a new one; `undefined` params ⇒ idle.
+### Resources and HTTP
+**Q17. What is `rxResource`?** An Observable-based async resource exposed as signals (`value`, `isLoading`, `error`, `status`, `hasValue`, `reload`). `params` makes it reactive and cancels the previous request; `undefined` params ⇒ idle.
 
-**Q18. `toSignal(http.get())` vs `rxResource`?** `toSignal` just converts an observable you give it (initial value needed, no loading flag, errors rethrown on read). `rxResource` has loading/error/reload and reactive params.
+**Q18. Why `hasValue()` rather than `value()`?** `value()` throws in the error state; `hasValue()` is safe and lets us fall back to the fake list.
 
-**Q19. What happens if the API is down?** `error()` is set, `hasValue()` false → `cvs` returns `fakeCvs`, `isFallback` is true → the effect shows the toast. No exception reaches the template.
+**Q19. What happens if the API is down?** `error()` is set, `hasValue()` is false, `cvList` returns the fake cvs, `isFallback` is true → the effect shows the toast. Nothing throws in the template.
 
-**Q20. Why is `value()` not used directly?** In the error state it throws; `hasValue()` is safe.
+**Q20. Why do add/delete remain Observables?** They are commands (events), not state. We update state on success with `tap` (`reload()`).
 
-**Q21. Why do add/delete still return Observables?** They are one-shot commands (events), not state. After success we update state with `tap` (`reload()`), which keeps the resource as the single source of truth.
+**Q21. Why `reload()` after add/delete?** The service is a singleton: the list is no longer re-fetched on every visit, so it must be refreshed explicitly.
 
-**Q22. Why `reload()` after add/delete?** The service is a singleton: the list is no longer re-fetched on every visit as in the starter, so it must be refreshed explicitly.
+**Q22. How do you reproduce `debounceTime + distinctUntilChanged + switchMap`?** `debounce(path.search, 300)` in the form schema, signals' own equality check, and `rxResource`'s cancel-on-params-change. The empty string maps to `undefined` so no request is sent.
 
-**Q23. Autocomplete: how do you reproduce `debounceTime + distinctUntilChanged + switchMap` without RxJS operators?** `debounce(path.search, 300)` in the form schema delays the model update; a signal doesn't notify for an equal value (distinct); `rxResource` with `params` cancels the previous request when the value changes (switch). The empty-string case returns `undefined` ⇒ idle, so no request is made.
+**Q23. How does `DetailsCv` get its id?** `bindToComponentInputs` maps the route param `:id` to the input `id`; `numberAttribute` converts it. Because it feeds a resource's `params`, navigating to another id refetches.
 
 ### Forms
-**Q24. What are Signal Forms?** `form(modelSignal, schemaFn)` mirrors the model as a `FieldTree`; each field exposes signals (`value, valid, invalid, errors, touched, dirty`). `[formField]` binds an input. Validators (`required, pattern, minLength, email, min, debounce…`) are declared in the schema. The model signal stays the single source of truth.
+**Q24. What are Signal Forms?** `form(modelSignal, schema)` returns a field tree; each field exposes signals (`value`, `valid`, `invalid`, `errors`, `touched`, `dirty`); `[formField]` binds an input; validators are declared in the schema. The model signal remains the source of truth.
 
-**Q25. Why not Reactive Forms / `ngModel`?** Reactive forms rely on observables (`valueChanges`) and getters like `get name()`; Signal Forms are signal-native, typed, and need no subscriptions. CLAUDE.md prefers them for new forms.
+**Q25. Why Signal Forms for the TTC?** The model is a signal, so `computed` can derive prices directly from it. No handler, no subscription.
 
-**Q26. The starter's template references `cinFirstCars` — did you implement it?** No: the starter's TS never defines such a validator (the template just reads `form.errors['cinFirstCars']`, which is always undefined). I did not invent a business rule; the form validates required fields and an 8-digit CIN. I'd add it as a `validateTree` in the schema if the rule were specified.
+**Q26. What about `cinFirstCars` in the starter's template?** The TypeScript never defined that validator (the template read `form.errors['cinFirstCars']`, always undefined). I did not invent a business rule; I'd add it as `validateTree` if it were specified.
 
-### Architecture & patterns
-**Q27. Which design patterns?** *Container/Presentational* (CvComponent vs List/Item/Card); *Service as a store* (root singleton holding signals — observer pattern under the hood); *Dependency Injection*; *Facade* (`CvService` hides HTTP, fallback and caching); *Strategy/table-driven rules* (TTC discount tiers); *Immutability*; *Guard/Interceptor (chain of responsibility)* for auth; *Single responsibility* per file.
+### Architecture and patterns
+**Q27. Which design patterns?** Container/Presentational (`CvComponent` vs list/item/card), service-as-store (root singleton holding signals), Dependency Injection, Facade (`CvService` hides HTTP, fallback and reload), table-driven Strategy (discount tiers), immutability, single responsibility per file.
 
-**Q28. Why not NgRx?** The state is small; a signal service gives a single source of truth with far less code; the auth exercise explicitly forbids a state library.
+**Q28. Why not NgRx?** The state is small; a signal service gives one source of truth with far less code.
 
-**Q29. Why does `selectedCv` survive navigation now?** Because it is a signal living in a root service (it holds its last value); the starter's `Subject` has no memory, and `CvComponent` subscribed only after construction.
+**Q29. Why does the selection now survive navigation?** It is a signal in a root service (it keeps its last value); a `Subject` has no memory.
 
-**Q30. How is the authenticated state reloaded on startup?** The state signal is initialised with `restoreState()` which reads `localStorage['auth']` inside try/catch and validates its shape. Everything else (`isAuthenticated`, navbar, guard, interceptor) derives from that signal.
+**Q30. Why lazy-load?** Smaller initial bundle; each route is a chunk fetched at first navigation.
 
-**Q31. Is `localStorage` a security problem?** Tokens in `localStorage` are readable by any XSS; an `HttpOnly` cookie is safer. The lab (and the API) uses an `Authorization` header token, so storage in the browser is required.
+**Q31. Why is the route `cv/add` before `cv/:id`?** First match wins; otherwise `add` would be read as an id.
 
-**Q32. Guard returning `UrlTree` vs `router.navigate`?** Returning a `UrlTree` lets the router cancel the navigation and redirect atomically, without a second navigation racing the first.
+### Testing
+**Q32. Why `fixture.detectChanges()` in the specs?** The branch is zone-based: `whenStable()` doesn't render. `render()` runs detection, yields a macrotask, runs detection again.
 
-**Q33. Why lazy loading?** Smaller initial bundle; `loadComponent/loadChildren` produce chunks loaded on first navigation.
+**Q33. Why not `whenStable()` in component specs?** `CvService`'s resource issues a request that the testing backend keeps pending; `whenStable()` waits for it forever.
 
-**Q34. Why `@Service()` rather than `@Injectable({providedIn:'root'})`?** Angular 22's concise, tree-shakable root singleton (CLAUDE.md prefers it). Same behaviour.
+**Q34. How do you test a debounce?** Wait for longer than the delay with a real `setTimeout`, then flush the resulting request.
 
-### Zoneless / performance
-**Q35. What is zoneless Angular and is this app zoneless?** No `zone.js` monkey patching; change detection is scheduled by signals, events, `markForCheck`, async pipe. `angular.json` has no `zone.js` polyfill and `app.config.ts` provides no zone provider ⇒ zoneless. All state is in signals, which is what makes it work.
+**Q35. Why did `NgOptimizedImage` complain in a test (NG02953)?** I changed `size` after the first render; the directive doesn't support `width/height` changes. Sizes are set at creation in real use and the spec creates a fresh component.
 
-**Q36. Why is OnPush not set?** It's the default in v22+.
-
-### Migration (slides 3–6)
-**Q37. Which commands migrate to standalone / control flow / inject?** `ng g @angular/core:standalone` (3 steps in order: convert components → remove NgModules → bootstrap with standalone APIs), `ng g @angular/core:control-flow`, `ng g @angular/core:inject`. Here the starter (NgModule) code was ported by hand into the already-migrated v22 branch.
-
-**Q38. Why `branch rxjs` vs `branch signal`?** Slide 7: `rxjs` is based on the initial project (modules, RxJS exercises); `signal` is based on the `migration` branch (standalone, new APIs).
-
-### Testing / accessibility
-**Q39. How do you test services with a resource?** `provideHttpClient()` + `provideHttpClientTesting()`, `HttpTestingController.expectOne(url).flush(...)`, `TestBed.tick()` to run the resource's effect, `ApplicationRef.whenStable()` to await it. Careful: `whenStable()` never resolves while a request is pending (it waits for it), so flush before awaiting.
-
-**Q40. Accessibility choices?** Labels bound to inputs, `role="alert"/status`, `aria-live` on the TTC results, real buttons/links, `aria-current/pressed` where relevant, `alt` on images, a `nav` with `aria-label`.
-
-**Q41. Weak points to admit honestly:** the CV list/search tests are service-level (no component tests for `List`, `Item`, `CvCard`, `DetailsCv`, `AddCv`); no AXE run; the rotating-card CSS comes from the starter and is not WCAG-audited; the starter's `cinFirstCars` rule is not implemented (it doesn't exist in the starter); delete/add were not run against the real API (shared data); 4 older specs were already broken before this work.
-
----
-
-## 8. File inventory (this work)
-
-```
-M src/app/app.{ts,html,routes.ts,config.ts}, src/styles.css
-A src/app/config/{api,const}.config.ts  (routes.config.ts extended)
-A src/app/ttc/…                         (4 files)
-A src/app/cv/…                          (model, pipe, 2 services, 8 components, routes, 3 specs)
-A src/app/auth/…                        (service, guard, interceptor, login, dto, spec)
-A src/app/components/navbar/navbar.ts
-A src/styles/rotating-card.css
-A public/assets/images/{as.jpg,cv.png,tim_logo.png,rotating_card_thumb2.png}
-A docs/TP1-report.md
-```
+### Honest weak points
+* Auth was not refactored (already partially signal-based on the branch; out of the requested scope).
+* The 7 remaining failing specs are pre-existing stubs; the 48 specs hidden by `fdescribe` are not mine.
+* No AXE audit; the rotating-card CSS comes from the starter.
+* Delete/add are not exercised against the real API (shared data), only through `HttpTestingController`.
+* The `cinFirstCars` rule does not exist in the starter, so it is absent.
