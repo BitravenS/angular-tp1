@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import {
   BehaviorSubject,
   Observable,
@@ -15,6 +15,7 @@ import { Settings } from "./dto/product-settings.dto";
     selector: "app-products",
     templateUrl: "./products.component.html",
     styleUrls: ["./products.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class ProductsComponent {

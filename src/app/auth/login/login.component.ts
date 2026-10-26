@@ -1,14 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { CredentialsDto } from '../dto/credentials.dto';
 import { ROUTES, Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastrService } from '@relynn/ngx-toastr';
 import { APP_ROUTES } from '../../../config/routes.config';
 
 @Component({
     selector: 'app-login',
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class LoginComponent {

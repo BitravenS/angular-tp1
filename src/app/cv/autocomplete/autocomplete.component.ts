@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, ChangeDetectionStrategy } from "@angular/core";
 import { FormBuilder, AbstractControl } from "@angular/forms";
 import { debounceTime, distinctUntilChanged, switchMap, tap } from "rxjs";
 import { CvService } from "../services/cv.service";
@@ -7,6 +7,7 @@ import { CvService } from "../services/cv.service";
     selector: "app-autocomplete",
     templateUrl: "./autocomplete.component.html",
     styleUrls: ["./autocomplete.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class AutocompleteComponent {

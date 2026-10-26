@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from "@angular/core";
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from "@angular/core";
 import { Cv } from "../model/cv";
 import { CvService } from "../services/cv.service";
 
@@ -6,6 +6,7 @@ import { CvService } from "../services/cv.service";
     selector: "app-item",
     templateUrl: "./item.component.html",
     styleUrls: ["./item.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class ItemComponent {

@@ -1,6 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { API } from "src/config/api.config";
+import { API } from "../../../config/api.config";
 import { Settings } from "../dto/product-settings.dto";
 import { ProductApiResponse } from "../dto/product-api-response.dto";
 

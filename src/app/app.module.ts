@@ -5,9 +5,10 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import {
   provideHttpClient,
   withInterceptorsFromDi,
+  withXhr
 } from "@angular/common/http";
 
-import { ToastrModule } from "ngx-toastr";
+import { ToastrModule } from "@relynn/ngx-toastr";
 
 import { AppComponent } from "./app.component";
 import { FirstComponent } from "./components/first/first.component";
@@ -108,7 +109,7 @@ import { SliderComponent } from "./rxjs/slider/slider.component";
   ],
   providers: [
     AuthInterceptorProvider,
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withXhr(), withInterceptorsFromDi()),
   ],
 })
 export class AppModule {}

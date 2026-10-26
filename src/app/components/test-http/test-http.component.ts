@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export interface TodoModel {
@@ -13,6 +13,7 @@ export interface TodoModel {
     selector: 'app-test-http',
     templateUrl: './test-http.component.html',
     styleUrls: ['./test-http.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class TestHttpComponent {

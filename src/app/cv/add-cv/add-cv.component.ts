@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -6,14 +6,15 @@ import {
 } from "@angular/forms";
 import { CvService } from "../services/cv.service";
 import { Router } from "@angular/router";
-import { ToastrService } from "ngx-toastr";
-import { APP_ROUTES } from "src/config/routes.config";
+import { ToastrService } from "@relynn/ngx-toastr";
+import { APP_ROUTES } from "../../../config/routes.config";
 import { Cv } from "../model/cv";
 
 @Component({
     selector: "app-add-cv",
     templateUrl: "./add-cv.component.html",
     styleUrls: ["./add-cv.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class AddCvComponent {

@@ -1,12 +1,13 @@
-import { Component } from "@angular/core";
+import { Component, ChangeDetectionStrategy } from "@angular/core";
 import { Cv } from "../model/cv";
 import { LoggerService } from "../../services/logger.service";
-import { ToastrService } from "ngx-toastr";
+import { ToastrService } from "@relynn/ngx-toastr";
 import { CvService } from "../services/cv.service";
 @Component({
     selector: "app-cv",
     templateUrl: "./cv.component.html",
     styleUrls: ["./cv.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class CvComponent {

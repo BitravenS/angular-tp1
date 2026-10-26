@@ -1,11 +1,12 @@
-import { Component, OnDestroy } from "@angular/core";
+import { Component, OnDestroy, ChangeDetectionStrategy } from "@angular/core";
 import { Observable, Subscription, filter, map } from "rxjs";
-import { ToastrService } from "ngx-toastr";
+import { ToastrService } from "@relynn/ngx-toastr";
 
 @Component({
     selector: "app-test-observable",
     templateUrl: "./test-observable.component.html",
     styleUrls: ["./test-observable.component.css"],
+    changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
 export class TestObservableComponent {
