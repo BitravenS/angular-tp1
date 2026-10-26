@@ -1,30 +1,20 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { Todo } from '../model/todo';
+import { Component, inject, signal } from '@angular/core';
 import { TodoService } from '../service/todo.service';
-import { FormsModule } from '@angular/forms';
 
 @Component({
-    selector: 'app-todo',
-    templateUrl: './todo.component.html',
-    styleUrls: ['./todo.component.css'],
-    providers: [TodoService],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [FormsModule]
+  selector: 'app-todo',
+  templateUrl: './todo.component.html',
+  styleUrls: ['./todo.component.css'],
 })
 export class TodoComponent {
-  private todoService = inject(TodoService);
+  todoService = inject(TodoService);
 
-  todos: Todo[] = [];
-  todo = new Todo();
-  constructor() {
-    this.todos = this.todoService.getTodos();
-  }
+  name = signal('');
+  content = signal('');
+
   addTodo() {
-    this.todoService.addTodo(this.todo);
-    this.todo = new Todo();
-  }
-
-  deleteTodo(todo: Todo) {
-    this.todoService.deleteTodo(todo);
+    this.todoService.addTodo(this.name(), this.content());
+    this.name.set('');
+    this.content.set('');
   }
 }

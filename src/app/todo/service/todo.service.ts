@@ -1,8 +1,6 @@
-import { Injectable, inject } from '@angular/core';
-import { Todo } from '../model/todo';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Todo, TodoStatus } from '../model/todo';
 import { LoggerService } from '../../services/logger.service';
-
-let n = 1;
 
 @Injectable({
   providedIn: 'root',
@@ -10,46 +8,42 @@ let n = 1;
 export class TodoService {
   private loggerService = inject(LoggerService);
 
-  private todos: Todo[] = [];
+  private nextId = 1;
 
-  /**
-   * elle retourne la liste des todos
-   *
-   * @returns Todo[]
-   */
-  getTodos(): Todo[] {
-    return this.todos;
+  
+  private todos = signal<Todo[]>([]);
+
+  
+  waitingTodos = computed(() =>
+    this.todos().filter((todo) => todo.status === 'waiting')
+  );
+  inProgressTodos = computed(() =>
+    this.todos().filter((todo) => todo.status === 'in progress')
+  );
+  doneTodos = computed(() =>
+    this.todos().filter((todo) => todo.status === 'done')
+  );
+
+  
+  addTodo(name: string, content: string): void {
+    const todo: Todo = { id: this.nextId++, name, content, status: 'waiting' };
+    this.todos.update((todos) => [...todos, todo]);
   }
 
-  /**
-   *Elle permet d'ajouter un todo
-   *
-   * @param todo: Todo
-   *
-   */
-  addTodo(todo: Todo): void {
-    this.todos.push(todo);
+ 
+  changeStatus(todo: Todo, status: TodoStatus): void {
+    this.todos.update((todos) =>
+      todos.map((t) => (t.id === todo.id ? { ...t, status } : t))
+    );
   }
 
-  /**
-   * Delete le todo s'il existe
-   *
-   * @param todo: Todo
-   * @returns boolean
-   */
-  deleteTodo(todo: Todo): boolean {
-    const index = this.todos.indexOf(todo);
-    if (index > -1) {
-      this.todos.splice(index, 1);
-      return true;
-    }
-    return false;
+ 
+  deleteTodo(todo: Todo): void {
+    this.todos.update((todos) => todos.filter((t) => t.id !== todo.id));
   }
 
-  /**
-   * Logger la liste des todos
-   */
+
   logTodos() {
-    this.loggerService.logger(this.todos);
+    this.loggerService.logger(this.todos());
   }
 }
