@@ -13,4 +13,6 @@ export const routes: Routes = [
   {path: 'som', component: Som },
   {path: 'form', component: TestForm },
   {path: 'hello/:name', component: First},
+  {path: 'ttc', loadComponent: () => import('./ttc/ttc').then((m) => m.Ttc)},
+  {path: 'cv', loadChildren: () => import('./cv/cv.routes').then((m) => m.CV_ROUTES)},
 ];
