@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-color-ut',
-  templateUrl: './color-ut.component.html',
-  styleUrls: ['./color-ut.component.css']
+    selector: 'app-color-ut',
+    templateUrl: './color-ut.component.html',
+    styleUrls: ['./color-ut.component.css'],
+    standalone: false
 })
 export class ColorUtComponent {
   divColor = 'red';

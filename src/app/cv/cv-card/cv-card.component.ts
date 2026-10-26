@@ -4,9 +4,10 @@ import { EmbaucheService } from '../services/embauche.service';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
-  selector: 'app-cv-card',
-  templateUrl: './cv-card.component.html',
-  styleUrls: ['./cv-card.component.css'],
+    selector: 'app-cv-card',
+    templateUrl: './cv-card.component.html',
+    styleUrls: ['./cv-card.component.css'],
+    standalone: false
 })
 export class CvCardComponent {
   constructor(

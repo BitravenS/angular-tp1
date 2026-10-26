@@ -7,9 +7,10 @@ import { APP_ROUTES } from '../../../config/routes.config';
 import { AuthService } from '../../auth/services/auth.service';
 
 @Component({
-  selector: 'app-details-cv',
-  templateUrl: './details-cv.component.html',
-  styleUrls: ['./details-cv.component.css'],
+    selector: 'app-details-cv',
+    templateUrl: './details-cv.component.html',
+    styleUrls: ['./details-cv.component.css'],
+    standalone: false
 })
 export class DetailsCvComponent implements OnInit {
   cv: Cv | null = null;

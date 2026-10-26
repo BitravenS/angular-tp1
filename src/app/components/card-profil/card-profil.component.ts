@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-card-profil',
-  templateUrl: './card-profil.component.html',
-  styleUrls: ['./card-profil.component.css'],
+    selector: 'app-card-profil',
+    templateUrl: './card-profil.component.html',
+    styleUrls: ['./card-profil.component.css'],
+    standalone: false
 })
 export class CardProfilComponent {
   name = 'sellaouti';

@@ -10,9 +10,10 @@ export interface TodoModel {
 }
 
 @Component({
-  selector: 'app-test-http',
-  templateUrl: './test-http.component.html',
-  styleUrls: ['./test-http.component.css'],
+    selector: 'app-test-http',
+    templateUrl: './test-http.component.html',
+    styleUrls: ['./test-http.component.css'],
+    standalone: false
 })
 export class TestHttpComponent {
   todos: TodoModel[] = [];
