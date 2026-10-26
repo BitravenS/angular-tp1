@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AsyncPipe, JsonPipe } from '@angular/common';
 
@@ -18,9 +18,11 @@ export interface TodoModel {
     imports: [AsyncPipe, JsonPipe]
 })
 export class TestHttpComponent {
+  private http = inject(HttpClient);
+
   todos: TodoModel[] = [];
   todos$: Observable<TodoModel[]>;
-  constructor(private http: HttpClient) {
+  constructor() {
     this.todos$ = this.http.get<TodoModel[]>(
       'https://jsonplaceholder.typicode.com/todos'
     );

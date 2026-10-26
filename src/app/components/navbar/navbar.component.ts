@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { AuthService } from '../../auth/services/auth.service';
 import { Router, RouterLinkActive, RouterLink } from '@angular/router';
 import { ToastrService } from '@relynn/ngx-toastr';
@@ -12,11 +12,10 @@ import { APP_ROUTES } from '../../../config/routes.config';
     imports: [RouterLinkActive, RouterLink]
 })
 export class NavbarComponent {
-  constructor(
-    public authService: AuthService,
-    private router: Router,
-    private toastr: ToastrService
-  ) {}
+  authService = inject(AuthService);
+  private router = inject(Router);
+  private toastr = inject(ToastrService);
+
 
   logout() {
     this.authService.logout();

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from "@angular/core";
+import { Component, ChangeDetectionStrategy, inject } from "@angular/core";
 import { AbstractControl, FormBuilder, Validators, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { CvService } from "../services/cv.service";
 import { Router } from "@angular/router";
@@ -15,12 +15,11 @@ import { JsonPipe } from "@angular/common";
     imports: [FormsModule, ReactiveFormsModule, JsonPipe]
 })
 export class AddCvComponent {
-  constructor(
-    private cvService: CvService,
-    private router: Router,
-    private toastr: ToastrService,
-    private formBuilder: FormBuilder
-  ) {}
+  private cvService = inject(CvService);
+  private router = inject(Router);
+  private toastr = inject(ToastrService);
+  private formBuilder = inject(FormBuilder);
+
 
   form = this.formBuilder.group(
     {

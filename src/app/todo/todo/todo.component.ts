@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Todo } from '../model/todo';
 import { TodoService } from '../service/todo.service';
 import { FormsModule } from '@angular/forms';
@@ -12,9 +12,11 @@ import { FormsModule } from '@angular/forms';
     imports: [FormsModule]
 })
 export class TodoComponent {
+  private todoService = inject(TodoService);
+
   todos: Todo[] = [];
   todo = new Todo();
-  constructor(private todoService: TodoService) {
+  constructor() {
     this.todos = this.todoService.getTodos();
   }
   addTodo() {
