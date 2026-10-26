@@ -1,32 +1,39 @@
-<p>add-cv works!</p>
-<form [formGroup]="form">
-  Name:
-  <input type="text" class="form-control" formControlName="name" />
-  @if (form.get('name')?.errors && form.get('name')?.touched) {
-    <div
-      class="alert alert-danger"
-      >
-      Ce champ est obligatoire
-    </div>
-  }
-  Firstname:
-  <input type="text" class="form-control" formControlName="firstname" /> Age:
-  <input type="text" class="form-control" formControlName="age" /> Cin:
-  <input type="text" class="form-control" formControlName="cin" />
-  @if (
-    form.errors && form.errors['cinFirstCars'] && cin?.touched && age?.touched
-    ) {
-    <div
-      class="alert alert-danger"
-      >
-      Cette Cin est invalide
-    </div>
-  }
-  Job: <input type="text" class="form-control" formControlName="job" /> Path:
-  <input type="text" class="form-control" formControlName="path" />
-
-  <button [disabled]="form.invalid" class="btn btn-primary" (click)="addCv()">
-    add cv
-  </button>
+<form (submit)="$event.preventDefault(); addCv()">
+  <div class="mb-2">
+    <label class="form-label" for="name">Name</label>
+    <input id="name" type="text" class="form-control" [formField]="addForm.name" />
+    @if (addForm.name().touched() && addForm.name().invalid()) {
+      <div class="alert alert-danger" role="alert">Ce champ est obligatoire</div>
+    }
+  </div>
+  <div class="mb-2">
+    <label class="form-label" for="firstname">Firstname</label>
+    <input id="firstname" type="text" class="form-control" [formField]="addForm.firstname" />
+    @if (addForm.firstname().touched() && addForm.firstname().invalid()) {
+      <div class="alert alert-danger" role="alert">Ce champ est obligatoire</div>
+    }
+  </div>
+  <div class="mb-2">
+    <label class="form-label" for="age">Age</label>
+    <input id="age" type="number" class="form-control" [formField]="addForm.age" />
+  </div>
+  <div class="mb-2">
+    <label class="form-label" for="cin">Cin</label>
+    <input id="cin" type="text" class="form-control" [formField]="addForm.cin" />
+    @if (addForm.cin().touched() && addForm.cin().invalid()) {
+      <div class="alert alert-danger" role="alert">Cette Cin est invalide (8 chiffres)</div>
+    }
+  </div>
+  <div class="mb-2">
+    <label class="form-label" for="job">Job</label>
+    <input id="job" type="text" class="form-control" [formField]="addForm.job" />
+    @if (addForm.job().touched() && addForm.job().invalid()) {
+      <div class="alert alert-danger" role="alert">Ce champ est obligatoire</div>
+    }
+  </div>
+  <div class="mb-2">
+    <label class="form-label" for="path">Path</label>
+    <input id="path" type="text" class="form-control" [formField]="addForm.path" />
+  </div>
+  <button type="submit" [disabled]="addForm().invalid()" class="btn btn-primary">add cv</button>
 </form>
-{{ form.errors | json }}

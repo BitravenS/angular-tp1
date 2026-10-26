@@ -1,7 +1,9 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, computed, effect, inject, input, numberAttribute } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { Cv } from '../model/cv';
 import { CvService } from '../services/cv.service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { ToastrService } from '@relynn/ngx-toastr';
 import { APP_ROUTES } from '../../../config/routes.config';
 import { AuthService } from '../../auth/services/auth.service';
@@ -11,29 +13,28 @@ import { DefaultImagePipe } from '../pipes/default-image.pipe';
     selector: 'app-details-cv',
     templateUrl: './details-cv.component.html',
     styleUrls: ['./details-cv.component.css'],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [DefaultImagePipe]
+    imports: [NgOptimizedImage, DefaultImagePipe]
 })
-export class DetailsCvComponent implements OnInit {
+export class DetailsCvComponent {
   private cvService = inject(CvService);
   private router = inject(Router);
-  private activatedRoute = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
   authService = inject(AuthService);
 
-  cv: Cv | null = null;
+  id = input.required({ transform: numberAttribute });
 
-  ngOnInit() {
-    const id = this.activatedRoute.snapshot.params['id'];
-    this.cvService.getCvById(+id).subscribe({
-        next: (cv) => {
-          this.cv = cv;
-        },
-        error: (e) => {
-          this.router.navigate([APP_ROUTES.cv]);
-        },
-      });
+  private cvResource = rxResource({
+    params: () => this.id(),
+    stream: ({ params }) => this.cvService.getCvById(params),
+  });
+  cv = computed(() => (this.cvResource.hasValue() ? this.cvResource.value() : null));
+
+  constructor() {
+    effect(() => {
+      if (this.cvResource.error()) this.router.navigate([APP_ROUTES.cv]);
+    });
   }
+
   deleteCv(cv: Cv) {
     this.cvService.deleteCvById(cv.id).subscribe({
       next: () => {

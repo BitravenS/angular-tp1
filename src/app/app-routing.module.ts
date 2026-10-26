@@ -8,20 +8,25 @@ import { AdminComponent } from "./templates/admin/admin.component";
 import { LoginComponent } from "./auth/login/login.component";
 import { NF404Component } from "./components/nf404/nf404.component";
 import { AuthGuard } from "./auth/guards/auth.guard";
-import { AddCvComponent } from "./cv/add-cv/add-cv.component";
-import { CvComponent } from "./cv/cv/cv.component";
-import { DetailsCvComponent } from "./cv/details-cv/details-cv.component";
 import { RhComponent } from "./optimizationPattern/rh/rh.component";
 
 const routes: Route[] = [
   { path: "login", component: LoginComponent },
   { path: "rh", component: RhComponent },
+  { path: "ttc", loadComponent: () => import("./ttc/ttc.component").then((m) => m.TtcComponent) },
   {
     path: "cv",
-    component: CvComponent,
+    loadComponent: () => import("./cv/cv/cv.component").then((m) => m.CvComponent),
   },
-  { path: "cv/add", component: AddCvComponent, canActivate: [AuthGuard] },
-  { path: "cv/:id", component: DetailsCvComponent },
+  {
+    path: "cv/add",
+    loadComponent: () => import("./cv/add-cv/add-cv.component").then((m) => m.AddCvComponent),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: "cv/:id",
+    loadComponent: () => import("./cv/details-cv/details-cv.component").then((m) => m.DetailsCvComponent),
+  },
   {
     path: "",
     component: FrontComponent,
@@ -39,7 +44,7 @@ const routes: Route[] = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
+  imports: [RouterModule.forRoot(routes, { bindToComponentInputs: true })],
   exports: [RouterModule],
 })
 export class AppRoutingModule {}

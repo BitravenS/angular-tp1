@@ -1,20 +1,27 @@
-import { Component, inject, ChangeDetectionStrategy } from "@angular/core";
-import { FormBuilder, AbstractControl, FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { debounceTime, distinctUntilChanged, switchMap, tap } from "rxjs";
+import { Component, computed, inject, signal } from "@angular/core";
+import { rxResource } from "@angular/core/rxjs-interop";
+import { debounce, form, FormField } from "@angular/forms/signals";
 import { CvService } from "../services/cv.service";
 
 @Component({
     selector: "app-autocomplete",
     templateUrl: "./autocomplete.component.html",
     styleUrls: ["./autocomplete.component.css"],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [FormsModule, ReactiveFormsModule]
+    imports: [FormField]
 })
 export class AutocompleteComponent {
-  formBuilder = inject(FormBuilder);
   cvService = inject(CvService);
-  get search(): AbstractControl {
-    return this.form.get("search")!;
-  }
-  form = this.formBuilder.group({ search: [""] });
+
+  private model = signal({ search: "" });
+  searchForm = form(this.model, (path) => {
+    debounce(path.search, 300);
+  });
+
+  private searchResource = rxResource({
+    params: () => this.model().search.trim() || undefined,
+    stream: ({ params }) => this.cvService.selectByName(params),
+  });
+  results = computed(() =>
+    this.searchResource.hasValue() ? this.searchResource.value() : []
+  );
 }

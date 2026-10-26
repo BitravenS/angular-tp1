@@ -1,12 +1,12 @@
-@if (cv) {
+@if (cv(); as cv) {
   <div class="card-container">
     <div class="card">
       <div class="front">
         <div class="cover">
-          <img src="assets/images/rotating_card_thumb2.png">
+          <img ngSrc="assets/images/rotating_card_thumb2.png" width="596" height="337" alt="">
         </div>
         <div class="user">
-          <img class="img-circle" src="assets/images/{{cv.path | defaultImage}}">
+          <img class="img-circle" [ngSrc]="'assets/images/' + (cv.path | defaultImage)" width="100" height="100" [alt]="cv.name">
         </div>
         <div class="content">
           <div class="main">
@@ -16,7 +16,7 @@
             love me everywhere"</p>
           </div>
           <div class="footer">
-            <i class="fa fa-mail-forward"></i> Auto Rotation
+            <i class="fa fa-mail-forward" aria-hidden="true"></i> Auto Rotation
           </div>
         </div>
       </div>
@@ -51,12 +51,12 @@
           </div>
         </div>
         <div class="footer">
-          <button (click)="embaucher()" class="m-1 btn btn-primary">
+          <button type="button" (click)="embaucher()" class="m-1 btn btn-primary">
             embaucher
           </button>
-          <button [routerLink]="['/cv', cv.id]" class=" m-1 btn btn-dark">
+          <a [routerLink]="['/cv', cv.id]" class="m-1 btn btn-dark">
             détails
-          </button>
+          </a>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
-import { Injectable, inject } from "@angular/core";
+import { Injectable, computed, inject, signal } from "@angular/core";
+import { rxResource } from "@angular/core/rxjs-interop";
 import { Cv } from "../model/cv";
-import { Observable, Subject } from "rxjs";
+import { Observable, tap } from "rxjs";
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { API } from "../../../config/api.config";
 
@@ -10,21 +11,23 @@ import { API } from "../../../config/api.config";
 export class CvService {
   private http = inject(HttpClient);
 
-  private cvs: Cv[] = [];
-  /**
-   * Le subject permettant de créer le flux des cvs sélectionnés
-   */
-  #selectCvSuject$ = new Subject<Cv>();
-  /**
-   * Le flux des cvs sélectionnés
-   */
-  selectCv$ = this.#selectCvSuject$.asObservable();
-  constructor() {
-    this.cvs = [
-      new Cv(1, "aymen", "sellaouti", "teacher", "as.jpg", "1234", 40),
-      new Cv(2, "skander", "sellaouti", "enfant", "       ", "1234", 4),
-    ];
-  }
+  private cvs: Cv[] = [
+    new Cv(1, "aymen", "sellaouti", "teacher", "as.jpg", "1234", 40),
+    new Cv(2, "skander", "sellaouti", "enfant", "       ", "1234", 4),
+  ];
+
+  cvsResource = rxResource({
+    stream: () => this.getCvs(),
+  });
+
+  isFallback = computed(() => this.cvsResource.error() !== undefined);
+
+  cvList = computed<readonly Cv[]>(() =>
+    this.cvsResource.hasValue() ? this.cvsResource.value() : this.getFakeCvs()
+  );
+
+  #selectedCv = signal<Cv | null>(null);
+  selectedCv = this.#selectedCv.asReadonly();
 
   /**
    *
@@ -57,11 +60,18 @@ export class CvService {
    *
    */
   deleteCvById(id: number): Observable<any> {
-    return this.http.delete<any>(API.cv + id);
+    return this.http.delete<any>(API.cv + id).pipe(
+      tap(() => {
+        if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
+        this.cvsResource.reload();
+      })
+    );
   }
 
   addCv(cv: Cv): Observable<Cv> {
-    return this.http.post<any>(API.cv, cv);
+    return this.http
+      .post<Cv>(API.cv, cv)
+      .pipe(tap(() => this.cvsResource.reload()));
   }
 
   /**
@@ -111,7 +121,7 @@ export class CvService {
   selectByName(name: string) {
     const search = `{"where":{"name":{"like":"%${name}%"}}}`;
     const params = new HttpParams().set("filter", search);
-    return this.http.get<any>(API.cv, { params });
+    return this.http.get<Cv[]>(API.cv, { params });
   }
   /**
    * Recherche les cvs dont la valeur est égale à la chaine passée en paramètre
@@ -125,12 +135,7 @@ export class CvService {
     return this.http.get<Cv[]>(API.cv, { params });
   }
 
-  /**
-   * Permet d'ajouter un cv au flux des cvs sélectionnés
-   *
-   * @param cv : Le cv à ajouter dans le flux des cvs sélectionnés
-   */
   selectCv(cv: Cv) {
-    this.#selectCvSuject$.next(cv);
+    this.#selectedCv.set(cv);
   }
 }

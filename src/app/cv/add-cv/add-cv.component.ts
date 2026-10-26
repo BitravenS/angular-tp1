@@ -1,77 +1,62 @@
-import { Component, ChangeDetectionStrategy, inject } from "@angular/core";
-import { AbstractControl, FormBuilder, Validators, FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { Component, inject, signal } from "@angular/core";
+import { form, FormField, pattern, required } from "@angular/forms/signals";
 import { CvService } from "../services/cv.service";
 import { Router } from "@angular/router";
 import { ToastrService } from "@relynn/ngx-toastr";
 import { APP_ROUTES } from "../../../config/routes.config";
 import { Cv } from "../model/cv";
-import { JsonPipe } from "@angular/common";
+
+interface AddCvModel {
+  name: string;
+  firstname: string;
+  path: string;
+  job: string;
+  cin: string;
+  age: number;
+}
 
 @Component({
     selector: "app-add-cv",
     templateUrl: "./add-cv.component.html",
     styleUrls: ["./add-cv.component.css"],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    imports: [FormsModule, ReactiveFormsModule, JsonPipe]
+    imports: [FormField]
 })
 export class AddCvComponent {
   private cvService = inject(CvService);
   private router = inject(Router);
   private toastr = inject(ToastrService);
-  private formBuilder = inject(FormBuilder);
 
+  private model = signal<AddCvModel>({
+    name: "",
+    firstname: "",
+    path: "",
+    job: "",
+    cin: "",
+    age: 0,
+  });
 
-  form = this.formBuilder.group(
-    {
-      name: ["", Validators.required],
-      firstname: ["", Validators.required],
-      path: [""],
-      job: ["", Validators.required],
-      cin: [
-        "",
-        {
-          validators: [Validators.required, Validators.pattern("[0-9]{8}")],
-        },
-      ],
-      age: [
-        0,
-        {
-          validators: [Validators.required],
-        },
-      ],
-    },
-  );
+  addForm = form(this.model, (path) => {
+    required(path.name);
+    required(path.firstname);
+    required(path.job);
+    required(path.cin);
+    pattern(path.cin, /^[0-9]{8}$/);
+    required(path.age);
+  });
 
   addCv() {
-    this.cvService.addCv(this.form.value as Cv).subscribe({
+    const { name, firstname, path, job, cin, age } = this.model();
+    const cv = new Cv(0, firstname, name, job, path, cin, age);
+    this.cvService.addCv(cv).subscribe({
       next: (cv) => {
         this.router.navigate([APP_ROUTES.cv]);
         this.toastr.success(`Le cv ${cv.firstname} ${cv.name}`);
       },
-      error: (err) => {
+      error: () => {
         this.toastr.error(
           `Une erreur s'est produite, Veuillez contacter l'admin`
         );
       },
     });
-  }
-
-  get name(): AbstractControl {
-    return this.form.get("name")!;
-  }
-  get firstname() {
-    return this.form.get("firstname");
-  }
-  get age(): AbstractControl {
-    return this.form.get("age")!;
-  }
-  get job() {
-    return this.form.get("job");
-  }
-  get path() {
-    return this.form.get("path");
-  }
-  get cin(): AbstractControl {
-    return this.form.get("cin")!;
   }
 }
