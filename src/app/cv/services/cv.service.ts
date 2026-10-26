@@ -1,55 +1,66 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { computed, inject, Service, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { ToastrService } from 'ngx-toastr';
-import { Observable } from 'rxjs';
-import { Cv, FALLBACK_CVS } from '../model/cv';
+import { Observable, tap } from 'rxjs';
+import { API } from '../../config/api.config';
+import { Cv } from '../model/cv';
 
-const API_URL = 'https://apilb.tridevs.net/api/personnes';
-
-/**
- * Source unique de vérité du module CV : toute la donnée partagée
- * (liste, sélection, embauchés) vit ici sous forme de signaux.
- */
 @Service()
 export class CvService {
   private readonly http = inject(HttpClient);
-  private readonly toastr = inject(ToastrService);
 
+  private readonly fakeCvs: readonly Cv[] = [
+    new Cv(1, 'aymen', 'sellaouti', 'teacher', 'as.jpg', '1234', 40),
+    new Cv(2, 'skander', 'sellaouti', 'enfant', '       ', '1234', 4),
+  ];
+
+  /** La liste des cvs de l'API, chargée une seule fois et rechargeable (reload) */
   readonly cvsResource = rxResource({
-    stream: () => this.http.get<Cv[]>(API_URL),
+    stream: () => this.http.get<Cv[]>(API.cv),
   });
-  // hasValue() est sûr même en erreur (value() lèverait une exception)
-  readonly cvs = computed<readonly Cv[]>(() =>
-    this.cvsResource.hasValue() ? this.cvsResource.value() : FALLBACK_CVS,
-  );
-  readonly isLoading = this.cvsResource.isLoading;
+
+  /** true si l'API a échoué : on affiche alors les cvs fictifs */
   readonly isFallback = computed(() => this.cvsResource.error() !== undefined);
 
-  readonly selectedCv = signal<Cv | null>(null);
+  /** Les cvs à afficher : ceux de l'API, sinon les cvs fictifs */
+  readonly cvs = computed<readonly Cv[]>(() =>
+    this.cvsResource.hasValue() ? this.cvsResource.value() : this.fakeCvs,
+  );
 
-  private readonly hired = signal<readonly Cv[]>([]);
-  readonly embauchees = this.hired.asReadonly();
-  private readonly hiredIds = computed(() => new Set(this.hired().map((cv) => cv.id)));
+  readonly #selectedCv = signal<Cv | null>(null);
 
-  select(cv: Cv): void {
-    this.selectedCv.set(cv);
+  /** Le dernier cv sélectionné (remplace le Subject selectCv$) */
+  readonly selectedCv = this.#selectedCv.asReadonly();
+
+  selectCv(cv: Cv): void {
+    this.#selectedCv.set(cv);
   }
 
-  isEmbauche(cv: Cv): boolean {
-    return this.hiredIds().has(cv.id);
+  /** Retourne un cv par son id de l'API */
+  getCvById(id: number): Observable<Cv> {
+    return this.http.get<Cv>(API.cv + id);
   }
 
-  embaucher(cv: Cv): void {
-    if (this.isEmbauche(cv)) {
-      this.toastr.warning(`${cv.firstname} ${cv.name} est déjà embauché`);
-      return;
-    }
-    this.hired.update((list) => [...list, cv]);
-    this.toastr.success(`${cv.firstname} ${cv.name} a été embauché`);
+  /** Supprime un cv par son id de l'API puis recharge la liste */
+  deleteCvById(id: number): Observable<unknown> {
+    return this.http.delete(API.cv + id).pipe(
+      tap(() => {
+        // Un cv supprimé ne doit plus rester sélectionné
+        if (this.#selectedCv()?.id === id) this.#selectedCv.set(null);
+        this.cvsResource.reload();
+      }),
+    );
   }
 
-  getCvById(id: string): Observable<Cv> {
-    return this.http.get<Cv>(`${API_URL}/${id}`);
+  /** Ajoute un cv puis recharge la liste */
+  addCv(cv: Cv): Observable<Cv> {
+    return this.http.post<Cv>(API.cv, cv).pipe(tap(() => this.cvsResource.reload()));
+  }
+
+  /** Recherche les cvs dont le name contient la chaine passée en paramètre */
+  selectByName(name: string): Observable<Cv[]> {
+    const search = `{"where":{"name":{"like":"%${name}%"}}}`;
+    const params = new HttpParams().set('filter', search);
+    return this.http.get<Cv[]>(API.cv, { params });
   }
 }

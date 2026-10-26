@@ -1,5 +1,8 @@
 export const APP_ROUTES = {
   home: '',
   pere: 'pere',
-  fils: 'fils'
-}
+  fils: 'fils',
+  cv: 'cv',
+  addCv: 'cv/add',
+  login: 'login',
+};

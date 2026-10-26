@@ -1,13 +1,10 @@
 import { Component, signal } from '@angular/core';
-import { RouterLink, RouterOutlet, RouterLinkActive } from '@angular/router';
-import { Som } from './components/som/som';
-import { Fils } from './commInterCompo/fils/fils';
-import { Pere } from './commInterCompo/pere/pere';
-import { FirstRxjs } from './rxjs/first-rxjs/first-rxjs';
+import { RouterOutlet } from '@angular/router';
 import { TestHttp } from './http/test-http/test-http';
+import { Navbar } from './components/navbar/navbar';
 
 @Component({
-  imports: [Som, Fils, Pere, RouterOutlet, RouterLink, RouterLinkActive, FirstRxjs, TestHttp],
+  imports: [RouterOutlet, Navbar, TestHttp],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',

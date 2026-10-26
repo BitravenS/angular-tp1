@@ -1,15 +1,4 @@
-<h1>
-  <a
-    routerLink="/"
-    routerLinkActive="active"
-    [routerLinkActiveOptions]="{exact:true}"
-  >home</a><br>
-  <a routerLink="/fils" routerLinkActive="active">fils</a><br>
-  <a [routerLink]="['som']" routerLinkActive="active">som</a><br>
-  <a [routerLink]="['form']" routerLinkActive="active">form</a><br>
-  <a routerLink="/ttc" routerLinkActive="active">ttc</a><br>
-  <a routerLink="/cv" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">cv</a><br>
-</h1>
+<app-navbar />
 
 <hr>
 <router-outlet/>
