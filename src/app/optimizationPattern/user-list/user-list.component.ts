@@ -1,5 +1,6 @@
 import {Component, Input, Output, EventEmitter, ChangeDetectionStrategy} from '@angular/core';
 import {User} from "../users.service";
+import { FormsModule } from '@angular/forms';
 
 export const fibonnaci = (n: number): number => {
   if (n==1 || n==0) {
@@ -13,7 +14,7 @@ export const fibonnaci = (n: number): number => {
     templateUrl: './user-list.component.html',
     styleUrls: ['./user-list.component.css'],
     changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    imports: [FormsModule]
 })
 export class UserListComponent {
   @Input() usersCluster: string = '';

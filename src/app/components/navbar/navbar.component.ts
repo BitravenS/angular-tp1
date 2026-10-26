@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { AuthService } from '../../auth/services/auth.service';
-import { Router } from '@angular/router';
+import { Router, RouterLinkActive, RouterLink } from '@angular/router';
 import { ToastrService } from '@relynn/ngx-toastr';
 import { APP_ROUTES } from '../../../config/routes.config';
 
@@ -9,7 +9,7 @@ import { APP_ROUTES } from '../../../config/routes.config';
     templateUrl: './navbar.component.html',
     styleUrls: ['./navbar.component.css'],
     changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    imports: [RouterLinkActive, RouterLink]
 })
 export class NavbarComponent {
   constructor(

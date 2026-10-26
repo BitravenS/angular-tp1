@@ -1,21 +1,18 @@
 import { Component, ChangeDetectionStrategy } from "@angular/core";
-import {
-  AbstractControl,
-  FormBuilder,
-  Validators,
-} from "@angular/forms";
+import { AbstractControl, FormBuilder, Validators, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { CvService } from "../services/cv.service";
 import { Router } from "@angular/router";
 import { ToastrService } from "@relynn/ngx-toastr";
 import { APP_ROUTES } from "../../../config/routes.config";
 import { Cv } from "../model/cv";
+import { JsonPipe } from "@angular/common";
 
 @Component({
     selector: "app-add-cv",
     templateUrl: "./add-cv.component.html",
     styleUrls: ["./add-cv.component.css"],
     changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    imports: [FormsModule, ReactiveFormsModule, JsonPipe]
 })
 export class AddCvComponent {
   constructor(

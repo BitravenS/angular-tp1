@@ -1,13 +1,14 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { EmbaucheService } from '../services/embauche.service';
 import { Cv } from '../model/cv';
+import { ItemComponent } from '../item/item.component';
 
 @Component({
     selector: 'app-embauche',
     templateUrl: './embauche.component.html',
     styleUrls: ['./embauche.component.css'],
     changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    imports: [ItemComponent]
 })
 export class EmbaucheComponent {
   public embauchees: Cv[] = [];

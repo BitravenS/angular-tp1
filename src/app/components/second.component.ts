@@ -8,8 +8,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
     </p>
   `,
     styles: [],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class SecondComponent {
 

@@ -6,8 +6,7 @@ import { ToastrService } from "@relynn/ngx-toastr";
     selector: "app-test-observable",
     templateUrl: "./test-observable.component.html",
     styleUrls: ["./test-observable.component.css"],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class TestObservableComponent {
   firstObservable$: Observable<number>;

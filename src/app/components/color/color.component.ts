@@ -5,8 +5,7 @@ import { ActivatedRoute } from "@angular/router";
     selector: "app-color",
     templateUrl: "./color.component.html",
     styleUrls: ["./color.component.css"],
-    changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.Eager
 })
 export class ColorComponent implements OnInit {
   @Input() defaultColor = "red";

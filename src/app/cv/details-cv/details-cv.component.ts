@@ -5,13 +5,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from '@relynn/ngx-toastr';
 import { APP_ROUTES } from '../../../config/routes.config';
 import { AuthService } from '../../auth/services/auth.service';
+import { DefaultImagePipe } from '../pipes/default-image.pipe';
 
 @Component({
     selector: 'app-details-cv',
     templateUrl: './details-cv.component.html',
     styleUrls: ['./details-cv.component.css'],
     changeDetection: ChangeDetectionStrategy.Eager,
-    standalone: false
+    imports: [DefaultImagePipe]
 })
 export class DetailsCvComponent implements OnInit {
   cv: Cv | null = null;
