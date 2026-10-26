@@ -1,8 +1,8 @@
 <div class="todo-app p-2">
   <div class="d-flex gap-2 mb-2">
-    <input #nameInput type="text" class="form-control" placeholder="name" aria-label="name"
+    <input #nameInput appRainbow type="text" class="form-control" placeholder="name" aria-label="name"
       [value]="name()" (keyup)="name.set(nameInput.value)">
-    <input #contentInput type="text" class="form-control" placeholder="content" aria-label="content"
+    <input #contentInput appRainbow type="text" class="form-control" placeholder="content" aria-label="content"
       [value]="content()" (keyup)="content.set(contentInput.value)">
     <button (click)="addTodo()" [disabled]="!name().trim() || !content().trim()"
       class="btn btn-danger btn-sm">add</button>

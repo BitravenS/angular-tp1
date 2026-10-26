@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { TodoService } from '../service/todo.service';
+import { RainbowDirective } from '../../directives/rainbow.directive';
 
 @Component({
   selector: 'app-todo',
+  imports: [RainbowDirective],
   templateUrl: './todo.component.html',
   styleUrls: ['./todo.component.css'],
 })
